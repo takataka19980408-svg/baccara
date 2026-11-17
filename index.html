@@ -478,7 +478,8 @@
   }
   @media (max-height: 640px){
     .lb-sub{display:none}
-    .stage{padding:4px 10px 3px;gap:3px;--dh:56px}
+    /* very short screens: the dealer band borrows whatever height the stage has spare */
+    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(56px, calc(100vh - 552px), 120px)}
     .dealer{gap:7px}
     .ds-plate{padding:3px 5px 4px}
     .ds-plate b{font-size:10.5px}
