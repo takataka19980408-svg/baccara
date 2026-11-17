@@ -2,12 +2,19 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#070a0e">
 <title>BACCARAT LOBBY</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* ---------- no zoom, no double-tap view shift ----------
+     A quick second tap on a chip or a bet spot used to zoom the page on iOS
+     Safari and shove the layout around. "manipulation" keeps ordinary vertical
+     and sideways panning (the big road still scrolls) and every single tap,
+     but hands the browser no double-tap zoom to perform. Pinch is stopped in JS. */
+  *,*::before,*::after{touch-action:manipulation}
   html,body{margin:0;padding:0;background:#05080b;color:#e8edf2;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
     -webkit-text-size-adjust:100%;font-feature-settings:"tnum"}
   body{display:flex;justify-content:center;min-height:100vh;min-height:100dvh;overscroll-behavior:none}
@@ -669,6 +676,24 @@
 <script>
 (function(){
   'use strict';
+
+  /* =========================================================
+     iOS Safari: a double tap must not zoom or move the screen
+     `touch-action: manipulation` + the meta viewport do the actual work;
+     these are the belt-and-braces guards. Nothing here touches touchend,
+     so a normal single tap still fires its click exactly as before.
+     ========================================================= */
+  (function lockZoom(){
+    var stop = function(e){ if(e.cancelable) e.preventDefault(); };
+    ['gesturestart','gesturechange','gestureend'].forEach(function(t){
+      document.addEventListener(t, stop, { passive:false });
+    });
+    document.addEventListener('dblclick', stop, { passive:false });
+    /* two fingers down: pinch, not a pan — refuse it before the browser zooms */
+    document.addEventListener('touchstart', function(e){
+      if(e.touches && e.touches.length > 1) stop(e);
+    }, { passive:false });
+  })();
 
   /* =========================================================
      constants
