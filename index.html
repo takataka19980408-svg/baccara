@@ -981,7 +981,8 @@
         callCtx.decodeAudioData(raw, function(dec){
           var ch = dec.getChannelData(0), peak = 0, i, a;
           for(i = 0; i < ch.length; i++){ a = ch[i] < 0 ? -ch[i] : ch[i]; if(a > peak) peak = a; }
-          callVol[k] = peak > 0.01 ? Math.min(2.4, 0.85 / peak) : 1;
+          /* bring the call up to an announce level without ever clipping */
+          callVol[k] = peak > 0.01 ? Math.min(4.5, 0.8 / peak) : 1;
           callBuf[k] = dec;
         }, function(){ /* the fallback speaks it */ });
       });
