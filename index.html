@@ -370,6 +370,45 @@
   .road-hd .meta{letter-spacing:.02em;font-variant-numeric:tabular-nums}
   .road-panel .road-scroll{flex:0 0 auto;max-height:calc(20px * 6 + 4px)}
 
+  /* ---------- derived roads (下罫線) ----------
+     大眼仔 ○ / 小路 ● / 甲由路 ／, three little 6-row grids under the big road.
+     Red = the rhythm held, blue = it broke — fixed baccarat colours, so the
+     P/B palette switch never turns them around. */
+  .dr-panel{flex:0 0 auto;margin:0 10px 7px;padding:4px 6px 4px;border-radius:12px;
+    background:rgba(5,9,13,.6);border:1px solid #1a2733;--drc:9px}
+  .dr-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .dr-item{min-width:0}
+  .dr-hd{display:flex;align-items:center;gap:3px;height:10px;margin-bottom:2px;
+    font-size:8px;font-weight:900;letter-spacing:.02em;color:#7d93a6;line-height:1;white-space:nowrap}
+  .dr-hd .dms{opacity:.75}
+  .dr-hd .dms{margin-left:1px;width:5px;height:5px}
+  .dr-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    height:calc(var(--drc) * 6);border-radius:4px;background:rgba(255,255,255,.024)}
+  .dr-scroll::-webkit-scrollbar{display:none}
+  .dr-grid{display:flex;height:calc(var(--drc) * 6);width:max-content;min-width:100%;
+    background-image:radial-gradient(circle at center,rgba(120,150,180,.10) 1px,transparent 1.3px);
+    background-size:var(--drc) var(--drc)}
+  .dr-col{display:flex;flex-direction:column;width:var(--drc);flex:0 0 var(--drc)}
+  .drc{position:relative;width:var(--drc);height:var(--drc);flex:0 0 var(--drc)}
+  .drc .dms{position:absolute;left:50%;top:50%;width:76%;height:76%;transform:translate(-50%,-50%)}
+  .dms{position:relative;display:block;width:6px;height:6px;flex:0 0 auto;color:#7b8ea1}
+  .dms.red{color:#e0574f}
+  .dms.blue{color:#5aa0e8}
+  .dms.none{opacity:.16;border-radius:50%;background:currentColor}
+  .dms.o{border:1px solid currentColor;border-radius:50%}
+  .dms.f{border-radius:50%;background:currentColor}
+  .dms.s::before{content:'';position:absolute;left:50%;top:50%;width:100%;height:0;
+    border-top:1.4px solid currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
+  .dr-pred{display:flex;align-items:center;gap:5px;padding-top:3px;font-size:8px;
+    color:#6f8296;font-weight:800;letter-spacing:.06em}
+  .dr-pred:empty{display:none}
+  .dr-pred .dpl{letter-spacing:.1em}
+  .dr-pred .dp-side{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;
+    border-radius:999px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.055)}
+  .dr-pred .dp-side b{font-size:8.5px;font-weight:900;letter-spacing:0}
+  .dr-pred .dp-side.p b{color:rgb(var(--p-lt-rgb))}
+  .dr-pred .dp-side.b b{color:rgb(var(--b-lt-rgb))}
+
   /* bet panel */
   .bet-panel{padding:8px 10px calc(10px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg,rgba(11,18,25,.9),rgba(7,11,16,.98));
@@ -445,14 +484,14 @@
 
   /* the dealer band follows the screen height where clamp() is supported */
   @supports (width:clamp(1px,2vw,3px)){
-    @media (min-height: 781px){ .stage{--dh:clamp(128px, 19vh, 186px)} }
+    @media (min-height: 781px){ .stage{--dh:clamp(96px, calc(100vh - 702px), 186px)} }
   }
 
   /* short screens (iPhone SE etc.) */
   @media (max-height: 780px){
     .tbar{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
     .tinfo{padding:4px 13px}
-    .stage{padding:6px 10px 5px;gap:4px;--dh:86px}
+    .stage{padding:6px 10px 5px;gap:4px;--dh:clamp(66px, calc(100vh - 588px), 120px)}
     .dealer{gap:8px}
     .ds-plate{padding:3px 6px 4px}
     .ds-plate b{font-size:11.5px}
@@ -468,6 +507,9 @@
     .banner .s{font-size:10.5px}
     .road-panel{margin-bottom:5px;padding:4px 8px 3px}
     .road-panel .road-scroll{max-height:calc(17px * 6 + 2px)}
+    .dr-panel{--drc:7px;padding:3px 6px 3px;margin-bottom:4px}
+    .dr-hd{height:9px;font-size:7.5px;margin-bottom:1px}
+    .dr-pred{display:none}
     .bet-panel{gap:6px;padding-top:6px}
     .bet-st{min-width:96px}
     .bet-st b{font-size:14px}
@@ -479,7 +521,7 @@
   @media (max-height: 640px){
     .lb-sub{display:none}
     /* very short screens: the dealer band borrows whatever height the stage has spare */
-    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(56px, calc(100vh - 552px), 120px)}
+    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(44px, calc(100vh - 524px), 120px)}
     .dealer{gap:7px}
     .ds-plate{padding:3px 5px 4px}
     .ds-plate b{font-size:10.5px}
@@ -494,7 +536,10 @@
     .banner .bx{padding:4px 12px}
     .banner .t{font-size:13px}
     .banner .s{font-size:9.5px;margin-top:1px}
-    .road-panel .road-scroll{max-height:calc(14px * 6 + 2px)}
+    .road-panel .road-scroll{max-height:calc(13px * 6 + 2px)}
+    .dr-panel{--drc:6px;padding:2px 6px 2px;margin-bottom:4px}
+    .dr-hd{height:9px;font-size:7px;margin-bottom:1px}
+    .dr-pred{display:none}
     .bet-panel{gap:5px;padding:5px 10px calc(6px + env(safe-area-inset-bottom))}
     .spot{min-height:37px;padding:4px 3px 5px}
     .spot .od{display:none}
@@ -507,6 +552,7 @@
   @media (max-width: 359px){
     .hide-xs{display:none !important}
     .road-hd .meta{display:none}
+    .dr-panel{margin-left:6px;margin-right:6px}
     .tinfo{gap:6px;padding:5px 10px}
     .tinfo .crowd b{display:none}
     .tinfo .crowd .b2{display:inline}
@@ -605,11 +651,11 @@
     <div class="lb-roadbar">
       <span class="rb-lbl">大路 / BIG ROAD</span>
       <span class="rb-toggles">
-        <button class="tie-toggle" id="tie-toggle-lobby" type="button" aria-pressed="false">
-          <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
+        <button class="tie-toggle" id="tie-toggle-lobby" type="button" aria-pressed="true">
+          <i class="tgi circle"></i><span class="tg-txt">タイ 緑丸</span>
         </button>
-        <button class="pb-toggle" id="pb-toggle-lobby" type="button" aria-pressed="false">
-          <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P青 B赤</span>
+        <button class="pb-toggle" id="pb-toggle-lobby" type="button" aria-pressed="true">
+          <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P赤 B青</span>
         </button>
       </span>
     </div>
@@ -685,15 +731,34 @@
         <span>大路 / BIG ROAD</span>
         <span class="rh-right">
           <span class="meta" id="road-meta">P 0 · B 0 · T 0</span>
-          <button class="tie-toggle" id="tie-toggle-table" type="button" aria-pressed="false">
-            <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
+          <button class="tie-toggle" id="tie-toggle-table" type="button" aria-pressed="true">
+            <i class="tgi circle"></i><span class="tg-txt">タイ 緑丸</span>
           </button>
-          <button class="pb-toggle" id="pb-toggle-table" type="button" aria-pressed="false">
-            <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P青 B赤</span>
+          <button class="pb-toggle" id="pb-toggle-table" type="button" aria-pressed="true">
+            <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P赤 B青</span>
           </button>
         </span>
       </div>
       <div class="road-scroll" id="table-road"></div>
+    </div>
+
+    <!-- 下罫線: 大眼仔 / 小路 / 甲由路 -->
+    <div class="dr-panel" id="derived-panel" role="group" aria-label="下罫線 大眼仔・小路・甲由路">
+      <div class="dr-row">
+        <div class="dr-item">
+          <div class="dr-hd"><span>大眼仔</span><i class="dms o"></i></div>
+          <div class="dr-scroll"><div class="dr-grid bigeye" id="dr-bigeye"></div></div>
+        </div>
+        <div class="dr-item">
+          <div class="dr-hd"><span>小路</span><i class="dms f"></i></div>
+          <div class="dr-scroll"><div class="dr-grid small" id="dr-small"></div></div>
+        </div>
+        <div class="dr-item">
+          <div class="dr-hd"><span>甲由路</span><i class="dms s"></i></div>
+          <div class="dr-scroll"><div class="dr-grid cockroach" id="dr-cockroach"></div></div>
+        </div>
+      </div>
+      <div class="dr-pred" id="dr-pred"></div>
     </div>
 
     <div class="bet-panel" id="bet-panel">
@@ -943,7 +1008,7 @@
      ========================================================= */
   var TIE_SLASH = 'slash';        // tie rides on the last decided cell
   var TIE_CIRCLE = 'circle';      // tie gets a green circle of its own
-  var tieMode = TIE_SLASH;
+  var tieMode = TIE_CIRCLE;       // the table's green circle is the default
 
   function buildRoad(results, mode){
     mode = (mode === TIE_CIRCLE) ? TIE_CIRCLE : (mode === TIE_SLASH ? TIE_SLASH : tieMode);
@@ -970,6 +1035,16 @@
       return c;
     }
 
+    /* one cell on from the head of the streak: down the column, or — once the
+       column is six deep — along row 5 to the right (the dragon tail) */
+    function step(){
+      var c = cur.col, row = cur.row;
+      if(row < 5 && free(c, row + 1)) return { col:c, row:row + 1 };
+      c = c + 1;
+      while(!free(c, row)) c++;
+      return { col:c, row:row };
+    }
+
     for(var i = 0; i < results.length; i++){
       var it = results[i];
 
@@ -979,18 +1054,33 @@
         continue;               // a tie before the first hand has nothing to ride on
       }
 
+      /* green-circle tie: a cell of its own, right under the hand it followed.
+         P → T → P therefore reads down one column, and the next P keeps going
+         under the tie; only a switch of side opens a new column. */
+      if(it.r === 'T'){
+        if(!cur){
+          var t0 = topFreeCol(0);
+          put('T', t0, 0);
+          cur = { r:null, col:t0, row:0, startCol:t0 };
+        } else {
+          var tn = step();
+          put('T', tn.col, tn.row);
+          cur.col = tn.col; cur.row = tn.row;
+        }
+        continue;
+      }
+
       var pair = (it.r === 'P') ? !!it.p1 : !!it.p2;
 
       if(cur && cur.r === it.r){
-        var c = cur.col, row = cur.row;
-        if(row < 5 && free(c, row + 1)){
-          row = row + 1;                        // keep stacking down
-        } else {
-          c = c + 1;                            // six deep -> run along row 5
-          while(!free(c, row)) c++;
-        }
-        put(it.r, c, row, { pair:pair });
-        cur.col = c; cur.row = row;
+        var nc = step();
+        put(it.r, nc.col, nc.row, { pair:pair });
+        cur.col = nc.col; cur.row = nc.row;
+      } else if(cur && cur.r === null){
+        /* the opening tie's side turns up: it sits under that tie */
+        var nc2 = step();
+        put(it.r, nc2.col, nc2.row, { pair:pair });
+        cur.r = it.r; cur.col = nc2.col; cur.row = nc2.row;
       } else {
         var sc = topFreeCol(cur ? cur.startCol + 1 : 0);
         put(it.r, sc, 0, { pair:pair });
@@ -1021,6 +1111,166 @@
       out += '</div>';
     }
     return out + '</div>';
+  }
+
+  /* =========================================================
+     derived roads (下罫線)
+     大眼仔 Big Eye Boy / 小路 Small Road / 甲由路 Cockroach Pig.
+     They are read off the big road's P/B columns only — ties are left out,
+     so P → T → P counts as one column of two P's whichever way the tie is
+     drawn. Each new P/B hand gets a mark: red when the column kept its
+     rhythm, blue when it broke it.
+     ========================================================= */
+  var DERIVED = [
+    { key:'bigeye',    k:1, name:'大眼仔', sym:'o' },   // ○ hollow
+    { key:'small',     k:2, name:'小路',   sym:'f' },   // ● filled
+    { key:'cockroach', k:3, name:'甲由路', sym:'s' }    // ／ slash
+  ];
+  var DR_RED = 'red', DR_BLUE = 'blue';
+
+  /* the big road folded down to its columns of P/B (ties dropped) */
+  function pbColumns(results){
+    var cols = [];
+    for(var i = 0; i < results.length; i++){
+      var r = results[i].r;
+      if(r !== 'P' && r !== 'B') continue;
+      var last = cols.length ? cols[cols.length - 1] : null;
+      if(last && last.side === r) last.len += 1;
+      else cols.push({ side:r, len:1 });
+    }
+    return cols;
+  }
+
+  /* colour of every hand for one road: offset 1 = 大眼仔, 2 = 小路, 3 = 甲由路 */
+  function marksFromLens(lens, k){
+    var marks = [], n = lens.length;
+    function len(c){ return (c >= 0 && c < n) ? lens[c] : 0; }
+    for(var c = 0; c < n; c++){
+      for(var r = 0; r < lens[c]; r++){
+        if(c < k) continue;                       // no comparison column yet
+        if(c === k && r === 0) continue;          // the road opens one row down
+        var red;
+        if(r === 0){
+          /* a fresh column: as long as the column before it, or not? */
+          red = (len(c - 1) === len(c - 1 - k));
+        } else {
+          /* down a column: look at the same row of the column k back.
+             A mark there — or having run past it already — keeps the rhythm;
+             only the hand that first runs past it breaks it. */
+          var ref = len(c - k);
+          red = (r < ref) || (r - 1 >= ref);
+        }
+        marks.push({ c:c, r:r, red:red });
+      }
+    }
+    return marks;
+  }
+
+  function derivedMarks(cols, k){
+    var lens = [];
+    for(var i = 0; i < cols.length; i++) lens.push(cols[i].len);
+    return marksFromLens(lens, k);
+  }
+
+  /* the marks are drawn in their own 6-row grid: same colour stacks down,
+     a colour change opens the next column (and row 5 runs to the right) */
+  function derivedCells(marks){
+    var cells = [], occupied = {}, cur = null;
+    function free(c, r){ return !occupied[c + ',' + r]; }
+    function topFree(from){ var c = from; while(!free(c, 0)) c++; return c; }
+    for(var i = 0; i < marks.length; i++){
+      var m = marks[i], c, row;
+      if(cur && cur.red === m.red){
+        c = cur.col; row = cur.row;
+        if(row < 5 && free(c, row + 1)) row = row + 1;
+        else { c = c + 1; while(!free(c, row)) c++; }
+        cur.col = c; cur.row = row;
+      } else {
+        c = topFree(cur ? cur.startCol + 1 : 0);
+        row = 0;
+        cur = { red:m.red, col:c, row:row, startCol:c };
+      }
+      occupied[c + ',' + row] = true;
+      cells.push({ red:m.red, col:c, row:row, c:m.c, r:m.r });
+    }
+    return cells;
+  }
+
+  /* what the next hand would add: the same road run once with a P, once with a B */
+  function derivedPredict(cols, k){
+    var lens = [], i;
+    for(i = 0; i < cols.length; i++) lens.push(cols[i].len);
+    var out = {};
+    var sides = ['P', 'B'];
+    for(i = 0; i < sides.length; i++){
+      var side = sides[i], l = lens.slice();
+      var last = cols.length ? cols[cols.length - 1] : null;
+      if(last && last.side === side) l[l.length - 1] += 1;
+      else l.push(1);
+      var ms = marksFromLens(l, k);
+      out[side] = ms.length ? ms[ms.length - 1] : null;
+    }
+    return out;
+  }
+
+  function drMark(cls){
+    return '<i class="dms ' + cls + '"></i>';
+  }
+
+  function derivedGridHTML(cols, k, sym, cellSize){
+    var cells = derivedCells(derivedMarks(cols, k));
+    var ncols = 0, i;
+    for(i = 0; i < cells.length; i++) if(cells[i].col + 1 > ncols) ncols = cells[i].col + 1;
+    var at = {};
+    for(i = 0; i < cells.length; i++) at[cells[i].col + ',' + cells[i].row] = cells[i].red;
+    var out = '<div class="dr-grid ' + sym + '">';
+    for(var c = 0; c < ncols; c++){
+      out += '<div class="dr-col">';
+      for(var row = 0; row < 6; row++){
+        var v = at[c + ',' + row];
+        if(v === undefined){ out += '<div class="drc"></div>'; continue; }
+        out += '<div class="drc">' + drMark(sym + ' ' + (v ? DR_RED : DR_BLUE)) + '</div>';
+      }
+      out += '</div>';
+    }
+    return out + '</div>';
+  }
+
+  function renderDerived(t){
+    if(!UI.drGrids) return;
+    var cols = pbColumns(t.results || []);
+    for(var i = 0; i < DERIVED.length; i++){
+      var d = DERIVED[i];
+      var host = UI.drGrids[d.key];
+      if(!host) continue;
+      host.innerHTML = derivedGridHTML(cols, d.k, d.sym);
+      var box = host.parentNode;
+      if(box && box.scrollLeft !== undefined) box.scrollLeft = box.scrollWidth;
+    }
+    if(UI.drPred){
+      var preds = [], has = false, j;
+      for(j = 0; j < DERIVED.length; j++){
+        var pair = derivedPredict(cols, DERIVED[j].k);
+        preds.push(pair);
+        if(pair.P || pair.B) has = true;
+      }
+      if(!has){
+        if(UI.drPred.innerHTML) UI.drPred.innerHTML = '';   /* a fresh shoe: nothing to predict yet */
+      } else {
+        var html = '<span class="dpl">予測</span>';
+        for(var s = 0; s < 2; s++){
+          var side = s ? 'B' : 'P';
+          html += '<span class="dp-side ' + side.toLowerCase() + '"><b>' + side + '</b>';
+          for(j = 0; j < DERIVED.length; j++){
+            var pr = preds[j][side];
+            html += pr ? drMark(DERIVED[j].sym + ' ' + (pr.red ? DR_RED : DR_BLUE))
+                       : '<i class="dms none"></i>';
+          }
+          html += '</span>';
+        }
+        if(UI.drPred.innerHTML !== html) UI.drPred.innerHTML = html;
+      }
+    }
   }
 
   /* ---------- tie display toggle (shared by lobby and table) ---------- */
@@ -1060,7 +1310,7 @@
      the big road, the hands, the bet layout and the result banner together. */
   var PB_PB = 'pb';               // P blue / B red — the table's usual colours
   var PB_BP = 'bp';               // P red  / B blue
-  var pbMode = PB_PB;
+  var pbMode = PB_BP;            // P red / B blue is the default
 
   function syncPbToggles(){
     var btns = document.querySelectorAll('.pb-toggle');
@@ -1092,7 +1342,7 @@
      state
      ========================================================= */
   var bank = { balance: 100000 };
-  var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_SLASH, pbMode: PB_PB,
+  var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_CIRCLE, pbMode: PB_BP,
                 betSeconds: 20, masterOpen: false };
   var tables = [];
   var now = function(){ return performance.now(); };
@@ -1391,6 +1641,8 @@
     UI.prevRes = $('prev-res');
     UI.road = $('table-road');
     UI.roadMeta = $('road-meta');
+    UI.drPred = $('dr-pred');
+    UI.drGrids = { bigeye: $('dr-bigeye'), small: $('dr-small'), cockroach: $('dr-cockroach') };
     UI.panel = $('bet-panel');
     UI.betSt = $('bet-st');
     UI.phaseLabel = $('phase-label');
@@ -1679,9 +1931,10 @@
   }
 
   function renderRoad(t){
-    var cell = (window.innerHeight <= 640) ? 14 : (window.innerHeight <= 780 ? 17 : 20);
+    var cell = (window.innerHeight <= 640) ? 13 : (window.innerHeight <= 780 ? 16 : 18);
     UI.road.innerHTML = roadHTML(t.results, cell);
     UI.road.scrollLeft = UI.road.scrollWidth;
+    renderDerived(t);
     var c = t.counts();
     UI.roadMeta.textContent = 'P ' + c.p + ' · B ' + c.b + ' · T ' + c.t;
     t.dirty = false;
@@ -2214,6 +2467,8 @@
     wire();
     buildMaster();
     wireMaster();
+    setPbMode(pbMode);
+    setTieMode(tieMode);
     syncTieToggles();
     syncPbToggles();
     syncWallet();
@@ -2233,6 +2488,13 @@
     score: score,
     buildRoad: buildRoad,
     roadHTML: roadHTML,
+    pbColumns: pbColumns,
+    derivedMarks: derivedMarks,
+    derivedCells: derivedCells,
+    derivedPredict: derivedPredict,
+    derivedGridHTML: derivedGridHTML,
+    renderDerived: renderDerived,
+    DERIVED: DERIVED,
     setTieMode: setTieMode,
     toggleTieMode: toggleTieMode,
     TIE_MODES: { slash: TIE_SLASH, circle: TIE_CIRCLE },
