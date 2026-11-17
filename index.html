@@ -535,7 +535,7 @@
     .tray i{width:9px;height:5px}
     .hands{--cw:50px;--chh:62px}
     .hand{min-height:94px;padding:6px 8px 7px;gap:4px}
-    .result-slot{height:42px}
+    .result-slot > .banner{top:calc(var(--dh) * .40 + 8px)}
     .banner .t{font-size:16px}
     .banner .s{font-size:10.5px}
     .road-panel{margin-bottom:5px;padding:4px 8px 3px}
@@ -567,7 +567,10 @@
     .hands{--cw:44px;--chh:52px;gap:7px}
     .hand{min-height:84px;padding:5px 7px 6px;gap:3px}
     .hand-hd .score{font-size:16px}
-    .result-slot{height:38px}
+    .result-slot > .banner{top:calc(var(--dh) * .38 + 6px)}
+    .banner .bx{padding:3px 10px;display:flex;align-items:baseline;gap:6px}
+    .banner .t{font-size:12.5px}
+    .banner .s{font-size:9px;margin-top:0}
     .banner .bx{padding:4px 12px}
     .banner .t{font-size:13px}
     .banner .s{font-size:9.5px;margin-top:1px}
@@ -2202,6 +2205,7 @@
       if(view.hand !== t.hand) resetView(t, ms);
       else syncDeal(t, ms, false);
       syncScores(t);
+      if(!UI.banner.classList.contains('hidden')) UI.prevRes.classList.add('hidden');
       if(!t.settled && !UI.banner.classList.contains('hidden')) hideBanner();
     }
 
