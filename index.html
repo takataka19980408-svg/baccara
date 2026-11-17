@@ -639,8 +639,7 @@
       <span id="t-seats">着席 4名</span>
       <span class="sep">/</span>
       <span id="t-shoe">シュー #1</span>
-      <span class="sep hide-xs">/</span>
-      <span id="t-remain" class="hide-xs">残り 416枚</span>
+      <span id="t-hno" class="hide-xs">· 12番</span>
       <span class="crowd" id="t-crowd" aria-label="他のお客さんの張り先"><b>他の客</b><b class="b2">他</b><span class="cbar"><em class="cp" id="crowd-p"></em><em class="ct" id="crowd-t"></em><em class="cb" id="crowd-b"></em></span></span>
       <button class="topup hidden" id="btn-topup">チップ補充 +100,000</button>
     </div>
@@ -699,7 +698,7 @@
 
     <div class="bet-panel" id="bet-panel">
       <div class="bet-hd">
-        <div class="bet-st" id="bet-st"><span id="phase-label">ベット受付中</span><b id="countdown">12</b><span class="u">s</span></div>
+        <div class="bet-st" id="bet-st"><span id="phase-label">ベット受付中</span><b id="countdown">20</b><span class="u">s</span></div>
         <div class="bet-bar"><i id="bet-bar"></i></div>
       </div>
 
@@ -758,9 +757,9 @@
             <span class="ms-k">ベット受付</span>
             <div class="ms-seg" id="m-betseg">
               <button type="button" data-sec="8">8秒</button>
-              <button type="button" data-sec="12" aria-pressed="true">12秒</button>
+              <button type="button" data-sec="12">12秒</button>
               <button type="button" data-sec="15">15秒</button>
-              <button type="button" data-sec="20">20秒</button>
+              <button type="button" data-sec="20" aria-pressed="true">20秒</button>
             </div>
           </div>
           <div class="ms-row">
@@ -811,9 +810,17 @@
   var SUITS = ['♠','♥','♦','♣'];
   var DECKS = 8;
   var PHASE = { BET:'bet', DEAL:'deal' };
-  var BET_MS = 12000;            // default betting window (the master can change it)
+  var BET_MS = 20000;            // default betting window (the master can change it)
   var RESULT_MS = 3500;          // let the result sit on the felt before the next window
-  var MIN_SHOE = 26;
+  var MIN_SHOE = 26;             // last-resort guard: never deal from a shoe this thin
+
+  /* one shoe runs about fifty hands, then the dealer shuffles and a new shoe
+     starts. ~4.9 cards a hand leaves 150–180 cards in the shoe at the cut. */
+  var SHOE_MIN_HANDS = 48;
+  var SHOE_MAX_HANDS = 53;
+  function shoeTargetHands(){
+    return SHOE_MIN_HANDS + Math.floor(Math.random() * (SHOE_MAX_HANDS - SHOE_MIN_HANDS + 1));
+  }
 
   /* the deal runs on one clock: cards are dealt face down first, then turned
      over one at a time. The third card is held back a beat longer. */
@@ -1086,7 +1093,7 @@
      ========================================================= */
   var bank = { balance: 100000 };
   var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_SLASH, pbMode: PB_PB,
-                betSeconds: 12, masterOpen: false };
+                betSeconds: 20, masterOpen: false };
   var tables = [];
   var now = function(){ return performance.now(); };
 
@@ -1103,6 +1110,8 @@
     this.dealer = dealer;
     this.shoe = new Shoe().shuffle();
     this.shoeNo = 1;
+    this.dealt = 0;                     // hands dealt from the shoe in play
+    this.target = shoeTargetHands();    // where the cut card sits, in hands
     this.results = [];
     this.phase = PHASE.BET;
     this.phaseEnd = 0;
@@ -1127,15 +1136,24 @@
   Table.prototype.reshuffle = function(){
     this.shoe = new Shoe().shuffle();
     this.shoeNo += 1;
+    this.dealt = 0;
+    this.target = shoeTargetHands();
     this.dirty = true;
   };
 
+  /* the shoe is cut at the target hand, so a shoe lasts fifty-something hands */
+  Table.prototype.drawHand = function(){
+    if(this.dealt >= this.target || this.shoe.remaining < MIN_SHOE) this.reshuffle();
+    var h = dealHand(this.shoe);
+    this.dealt += 1;
+    return h;
+  };
+
   Table.prototype.preload = function(){
-    /* 15–25 games are already on the board when the app opens. */
-    var n = 15 + Math.floor(Math.random() * 11);
+    /* every table opens somewhere else in its shoe: 8–42 hands on the board */
+    var n = 8 + Math.floor(Math.random() * 35);
     for(var i = 0; i < n; i++){
-      if(this.shoe.remaining < MIN_SHOE) this.reshuffle();
-      var h = dealHand(this.shoe);
+      var h = this.drawHand();
       this.results.push({ r: h.result, p1: h.pPair, p2: h.bPair });
     }
   };
@@ -1178,8 +1196,7 @@
   };
 
   Table.prototype.startDeal = function(t){
-    if(this.shoe.remaining < MIN_SHOE) this.reshuffle();
-    this.hand = dealHand(this.shoe);
+    this.hand = this.drawHand();
     var plan = dealPlan(this.hand);
     var lastFlip = planSettle(plan);
     this.phase = PHASE.DEAL;
@@ -1355,7 +1372,7 @@
     UI.tDealer = $('t-dealer');
     UI.tAvatarImg = $('t-avatar-img');
     UI.tShoe = $('t-shoe');
-    UI.tRemain = $('t-remain');
+    UI.tHno = $('t-hno');
     UI.tSeats = $('t-seats');
     UI.crowdP = $('crowd-p');
     UI.crowdT = $('crowd-t');
@@ -1467,7 +1484,7 @@
       badgeCls += ' bet';
       if(s <= 4) badgeCls += ' urgent';
     } else if(!t.settled){
-      badgeText = '配札中';
+      badgeText = 'ゲーム中';
       badgeCls += ' deal';
     } else {
       var r = t.lastResult ? t.lastResult.result : 'T';
@@ -1524,7 +1541,7 @@
         var left = Math.max(0, t.phaseEnd - now());
         toast('着席 · 受付はあと ' + Math.ceil(left / 1000) + '秒');
       } else {
-        toast('着席 · この局は配札中、次から張れるよ');
+        toast('着席 · この局はゲーム中、次から張れるよ');
       }
     }
   }
@@ -1652,7 +1669,7 @@
     var t = state.currentTable;
     if(!t) return;
     UI.tShoe.textContent = 'シュー #' + t.shoeNo;
-    UI.tRemain.textContent = '残り ' + t.shoe.remaining + '枚';
+    UI.tHno.textContent = '· ' + t.dealt + '番';
     renderRoad(t);
     renderBets(t);
     UI.prevRes.classList.add('hidden');
@@ -1836,14 +1853,14 @@
       UI.bar.style.width = Math.min(100, toNext / RESULT_MS * 100) + '%';
     } else {
       UI.betSt.classList.add('no-num');
-      UI.phaseLabel.textContent = '配札中';
+      UI.phaseLabel.textContent = 'ゲーム中';
       UI.bar.style.width = '0%';
     }
     UI.panel.classList.toggle('locked', !betting);
 
     /* shoe line + who else is sitting here */
     UI.tShoe.textContent = 'シュー #' + t.shoeNo;
-    UI.tRemain.textContent = '残り ' + t.shoe.remaining + '枚';
+    UI.tHno.textContent = '· ' + t.dealt + '番';
     renderLiveInfo(t);
 
     if(betting){
@@ -1999,6 +2016,8 @@
       var t = list[i];
       t.shoe = new Shoe().shuffle();
       t.shoeNo = 1;
+      t.dealt = 0;
+      t.target = shoeTargetHands();
       t.results = [];
       t.lastResult = null;
       t.lastBets = null;
@@ -2145,11 +2164,11 @@
      bet: the window is already running   deal: cards are on the felt
      result: the hand is over, the next window is about to open */
   var LIVE_SEED = [
-    { kind:'bet',    left: 7600 },
+    { kind:'bet',    left: 15600 },
     { kind:'deal',   elapsed: 2400 },
-    { kind:'bet',    left: 2800 },
+    { kind:'bet',    left: 4800 },
     { kind:'result', left: 2600 },
-    { kind:'bet',    left: 10400 },
+    { kind:'bet',    left: 13400 },
     { kind:'deal',   elapsed: 1100 }
   ];
 
