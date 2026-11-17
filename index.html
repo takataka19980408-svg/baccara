@@ -242,7 +242,7 @@
     background:
       radial-gradient(48% 70% at 22% 6%,rgba(255,210,150,.20),rgba(255,210,150,0) 72%),
       radial-gradient(60% 90% at 80% 40%,rgba(90,150,255,.06),rgba(90,150,255,0) 70%)}
-  .ds-photo{position:relative;flex:0 0 auto;align-self:stretch;width:calc(var(--dh) * 1.12);
+  .ds-photo{position:relative;flex:0 0 auto;align-self:stretch;width:calc(var(--dh) * 1.32);
     border-radius:12px 12px 5px 5px;
     overflow:hidden;border:1px solid rgba(240,214,138,.3);background:#0c1218;
     box-shadow:0 0 0 1px rgba(0,0,0,.65),0 12px 24px rgba(0,0,0,.6),0 0 30px rgba(255,196,120,.16)}
@@ -347,7 +347,11 @@
   }
 
   .banner{display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;width:100%}
-  .result-slot{height:52px;display:flex;align-items:center;justify-content:center;position:relative;z-index:6}
+  /* the result floats over the felt (the dealer's lower half), so it never
+     pushes the hands or gets clipped by the stage on a short phone */
+  .result-slot{position:absolute;inset:0;z-index:6;pointer-events:none}
+  .result-slot > .banner{position:absolute;left:50%;top:calc(var(--dh) * .42 + 10px);transform:translateX(-50%)}
+  .result-slot > .prev-res{position:absolute;left:50%;bottom:3px;transform:translateX(-50%)}
   .prev-res{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6c8090;
     background:rgba(6,11,16,.5);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:4px 12px}
   .banner .bx{text-align:center;padding:7px 18px;border-radius:12px;
@@ -370,18 +374,24 @@
   .road-hd .meta{letter-spacing:.02em;font-variant-numeric:tabular-nums}
   .road-panel .road-scroll{flex:0 0 auto;max-height:calc(20px * 6 + 4px)}
 
-  /* ---------- derived roads (下罫線) ----------
-     大眼仔 ○ / 小路 ● / 甲由路 ／, three little 6-row grids under the big road.
+  /* ---------- roads under the big road ----------
+     大眼仔 ○ / 小路 ● / 甲由路 ／ on the left, 珠盤路 (6目罫線) on the right,
+     the P/B prediction row under both of them.
      Red = the rhythm held, blue = it broke — fixed baccarat colours, so the
-     P/B palette switch never turns them around. */
-  .dr-panel{flex:0 0 auto;margin:0 10px 7px;padding:4px 6px 4px;border-radius:12px;
-    background:rgba(5,9,13,.6);border:1px solid #1a2733;--drc:9px}
-  .dr-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+     P/B palette switch never turns them around. The beads, on the other hand,
+     are the hands themselves, so their circles follow the P/B palette.
+     The prediction row lives inside the panel and no screen height hides it. */
+  .dr-panel{flex:0 0 auto;margin:0 10px 7px;padding:5px 7px 3px;border-radius:12px;
+    background:rgba(5,9,13,.6);border:1px solid #1a2733;--drc:9px;--bc:14px}
+  .rd-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:start}
+  .rd-left{min-width:0;display:flex;flex-direction:column;gap:2px}
+  .dr-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
   .dr-item{min-width:0}
   .dr-hd{display:flex;align-items:center;gap:3px;height:10px;margin-bottom:2px;
     font-size:8px;font-weight:900;letter-spacing:.02em;color:#7d93a6;line-height:1;white-space:nowrap}
   .dr-hd .dms{opacity:.75}
   .dr-hd .dms{margin-left:1px;width:5px;height:5px}
+  .dr-hd .bd6{opacity:.7;font-weight:800}
   .dr-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;
     height:calc(var(--drc) * 6);border-radius:4px;background:rgba(255,255,255,.024)}
   .dr-scroll::-webkit-scrollbar{display:none}
@@ -399,15 +409,38 @@
   .dms.f{border-radius:50%;background:currentColor}
   .dms.s::before{content:'';position:absolute;left:50%;top:50%;width:100%;height:0;
     border-top:1.4px solid currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
-  .dr-pred{display:flex;align-items:center;gap:5px;padding-top:3px;font-size:8px;
-    color:#6f8296;font-weight:800;letter-spacing:.06em}
-  .dr-pred:empty{display:none}
-  .dr-pred .dpl{letter-spacing:.1em}
-  .dr-pred .dp-side{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;
-    border-radius:999px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.055)}
-  .dr-pred .dp-side b{font-size:8.5px;font-weight:900;letter-spacing:0}
+  /* 珠盤路 — one hand per cell, six hands down then the next column */
+  .beads-item{min-width:0;width:calc(var(--bc) * 6)}
+  .beads-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    height:calc(var(--bc) * 6);border-radius:4px;background:rgba(255,255,255,.024)}
+  .beads-scroll::-webkit-scrollbar{display:none}
+  .beads-grid{display:flex;height:calc(var(--bc) * 6);width:max-content;min-width:100%;
+    background-image:radial-gradient(circle at center,rgba(120,150,180,.10) 1px,transparent 1.3px);
+    background-size:var(--bc) var(--bc)}
+  .beads-col{display:flex;flex-direction:column;width:var(--bc);flex:0 0 var(--bc)}
+  .bc{position:relative;display:grid;place-items:center;width:var(--bc);height:var(--bc);
+    flex:0 0 var(--bc)}
+  .bc .bch{display:grid;place-items:center;width:84%;height:84%;border-radius:50%;
+    font-size:calc(var(--bc) * .62);font-weight:900;line-height:1;color:#fff;letter-spacing:0;
+    text-shadow:0 1px 1px rgba(0,0,0,.4)}
+  .bc.p .bch{background:rgb(var(--p-rgb))}
+  .bc.b .bch{background:rgb(var(--b-rgb))}
+  .bc.t .bch{background:#38b16c}
+  .bc .pm{position:absolute;top:0;right:0;width:4px;height:4px;border-radius:50%;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+  .bc.p .pm{background:rgb(var(--p-lt-rgb))}
+  .bc.b .pm{background:rgb(var(--b-lt-rgb))}
+
+  /* 予測 — next P and next B, one row, always on screen */
+  .dr-pred{display:flex;align-items:center;gap:6px;padding-top:4px;min-height:17px;
+    font-size:9px;color:#7d93a6;font-weight:800;letter-spacing:.06em}
+  .dr-pred .dpl{letter-spacing:.14em;color:#9db0c1}
+  .dr-pred .dp-side{display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 5px;
+    border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
+  .dr-pred .dp-side b{font-size:10px;font-weight:900;letter-spacing:0}
   .dr-pred .dp-side.p b{color:rgb(var(--p-lt-rgb))}
   .dr-pred .dp-side.b b{color:rgb(var(--b-lt-rgb))}
+  .dr-pred .dms{width:7px;height:7px}
 
   /* bet panel */
   .bet-panel{padding:8px 10px calc(10px + env(safe-area-inset-bottom));
@@ -484,14 +517,14 @@
 
   /* the dealer band follows the screen height where clamp() is supported */
   @supports (width:clamp(1px,2vw,3px)){
-    @media (min-height: 821px){ .stage{--dh:clamp(44px, calc(100vh - 702px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 186px)} }
+    @media (min-height: 821px){ .stage{--dh:clamp(44px, calc(100vh - 722px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 186px)} }
   }
 
   /* short screens (iPhone SE, and the small notched phones with their safe areas) */
   @media (max-height: 820px){
     .tbar{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
     .tinfo{padding:4px 13px}
-    .stage{padding:6px 10px 5px;gap:4px;--dh:clamp(60px, calc(100vh - 588px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
+    .stage{padding:5px 10px 4px;gap:4px;--dh:clamp(52px, calc(100vh - 588px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
     .dealer{gap:8px}
     .ds-plate{padding:3px 6px 4px}
     .ds-plate b{font-size:11.5px}
@@ -500,28 +533,30 @@
     .shoe::before{top:-6px;height:8px}
     .tray{grid-template-columns:repeat(4,9px);padding:2px 3px}
     .tray i{width:9px;height:5px}
-    .hands{--cw:50px;--chh:66px}
-    .hand{min-height:98px;padding:6px 8px 7px;gap:4px}
+    .hands{--cw:50px;--chh:62px}
+    .hand{min-height:94px;padding:6px 8px 7px;gap:4px}
     .result-slot{height:42px}
     .banner .t{font-size:16px}
     .banner .s{font-size:10.5px}
     .road-panel{margin-bottom:5px;padding:4px 8px 3px}
-    .road-panel .road-scroll{max-height:calc(16px * 6 + 2px)}
-    .dr-panel{--drc:7px;padding:3px 6px 3px;margin-bottom:4px}
+    .road-panel .road-scroll{max-height:calc(15px * 6 + 2px)}
+    .dr-panel{--drc:7px;--bc:10.5px;padding:4px 6px 2px;margin-bottom:4px}
     .dr-hd{height:9px;font-size:7.5px;margin-bottom:1px}
-    .dr-pred{display:none}
-    .bet-panel{gap:6px;padding-top:6px}
+    .dr-pred{padding-top:3px;min-height:15px;font-size:8.5px;gap:5px}
+    .dr-pred .dp-side b{font-size:9.5px}
+    .dr-pred .dms{width:6.5px;height:6.5px}
+    .bet-panel{gap:5px;padding:5px 10px calc(8px + env(safe-area-inset-bottom))}
     .bet-st{min-width:96px}
     .bet-st b{font-size:14px}
-    .spot{min-height:42px;padding:5px 4px 6px}
+    .spot{min-height:40px;padding:5px 4px 6px}
     .spot .lbl{font-size:11px}
-    .chip{height:32px;font-size:11px}
-    .act{padding:7px 6px}
+    .chip{height:30px;font-size:11px}
+    .act{padding:6px 6px}
   }
   @media (max-height: 640px){
     .lb-sub{display:none}
     /* very short screens: the dealer band borrows whatever height the stage has spare */
-    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(42px, calc(100vh - 524px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
+    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(40px, calc(100vh - 514px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
     .dealer{gap:7px}
     .ds-plate{padding:3px 5px 4px}
     .ds-plate b{font-size:10.5px}
@@ -529,28 +564,32 @@
     .shoe{width:42px;height:24px}
     .tray{grid-template-columns:repeat(4,7px);padding:2px 3px}
     .tray i{width:7px;height:5px}
-    .hands{--cw:44px;--chh:58px;gap:7px}
+    .hands{--cw:44px;--chh:52px;gap:7px}
     .hand{min-height:84px;padding:5px 7px 6px;gap:3px}
     .hand-hd .score{font-size:16px}
     .result-slot{height:38px}
     .banner .bx{padding:4px 12px}
     .banner .t{font-size:13px}
     .banner .s{font-size:9.5px;margin-top:1px}
-    .road-panel .road-scroll{max-height:calc(13px * 6 + 2px)}
-    .dr-panel{--drc:6px;padding:2px 6px 2px;margin-bottom:4px}
-    .dr-hd{height:9px;font-size:7px;margin-bottom:1px}
-    .dr-pred{display:none}
-    .bet-panel{gap:5px;padding:5px 10px calc(6px + env(safe-area-inset-bottom))}
+    .road-panel .road-scroll{max-height:calc(11px * 6 + 2px)}
+    .dr-panel{--drc:5.5px;--bc:8.5px;padding:3px 6px 1px;margin-bottom:3px}
+    .dr-hd{height:8px;font-size:7px;margin-bottom:1px}
+    .dr-pred{padding-top:2px;min-height:13px;font-size:8px;gap:4px}
+    .dr-pred .dp-side{padding:0 6px 0 4px}
+    .dr-pred .dp-side b{font-size:9px}
+    .dr-pred .dms{width:6px;height:6px}
+    .bet-panel{gap:4px;padding:4px 10px calc(6px + env(safe-area-inset-bottom))}
     .spot{min-height:37px;padding:4px 3px 5px}
     .spot .od{display:none}
     .chip{height:29px;font-size:10.5px}
-    .act{padding:6px 5px;font-size:10.5px}
+    .act{padding:5px;font-size:10.5px}
     .bet-total b{font-size:12px}
     .spot .stack i{width:12px;height:6px;margin-top:-3px}
     .tinfo{padding:4px 13px}
   }
   @media (max-width: 359px){
     .hide-xs{display:none !important}
+    .dr-hd .bd6{display:none}
     .road-hd .meta{display:none}
     .dr-panel{margin-left:6px;margin-right:6px}
     .tinfo{gap:6px;padding:5px 10px}
@@ -742,23 +781,32 @@
       <div class="road-scroll" id="table-road"></div>
     </div>
 
-    <!-- 下罫線: 大眼仔 / 小路 / 甲由路 -->
-    <div class="dr-panel" id="derived-panel" role="group" aria-label="下罫線 大眼仔・小路・甲由路">
-      <div class="dr-row">
-        <div class="dr-item">
-          <div class="dr-hd"><span>大眼仔</span><i class="dms o"></i></div>
-          <div class="dr-scroll"><div class="dr-grid bigeye" id="dr-bigeye"></div></div>
+    <!-- 大路の下: 左に下罫線3種、右に珠盤路（6目罫線）、その直下に予測行 -->
+    <div class="dr-panel" id="derived-panel" role="group"
+         aria-label="下罫線 大眼仔・小路・甲由路 と 珠盤路">
+      <div class="rd-top">
+        <div class="rd-left">
+          <div class="dr-row">
+            <div class="dr-item">
+              <div class="dr-hd"><span>大眼仔</span><i class="dms o"></i></div>
+              <div class="dr-scroll"><div class="dr-grid bigeye" id="dr-bigeye"></div></div>
+            </div>
+            <div class="dr-item">
+              <div class="dr-hd"><span>小路</span><i class="dms f"></i></div>
+              <div class="dr-scroll"><div class="dr-grid small" id="dr-small"></div></div>
+            </div>
+            <div class="dr-item">
+              <div class="dr-hd"><span>甲由路</span><i class="dms s"></i></div>
+              <div class="dr-scroll"><div class="dr-grid cockroach" id="dr-cockroach"></div></div>
+            </div>
+          </div>
+          <div class="dr-pred" id="dr-pred"></div>
         </div>
-        <div class="dr-item">
-          <div class="dr-hd"><span>小路</span><i class="dms f"></i></div>
-          <div class="dr-scroll"><div class="dr-grid small" id="dr-small"></div></div>
-        </div>
-        <div class="dr-item">
-          <div class="dr-hd"><span>甲由路</span><i class="dms s"></i></div>
-          <div class="dr-scroll"><div class="dr-grid cockroach" id="dr-cockroach"></div></div>
+        <div class="beads-item">
+          <div class="dr-hd"><span>珠盤路</span><span class="bd6">6目</span></div>
+          <div class="dr-scroll beads-scroll"><div class="beads-grid" id="beads-road"></div></div>
         </div>
       </div>
-      <div class="dr-pred" id="dr-pred"></div>
     </div>
 
     <div class="bet-panel" id="bet-panel">
@@ -768,11 +816,11 @@
       </div>
 
       <div class="spots">
+        <button class="spot pp" data-spot="PP"><span class="lbl">P PAIR</span><span class="od">11:1</span><span class="amt zero" data-amt="PP">0</span><span class="stack" data-stack="PP"></span></button>
+        <button class="spot bp" data-spot="BP"><span class="lbl">B PAIR</span><span class="od">11:1</span><span class="amt zero" data-amt="BP">0</span><span class="stack" data-stack="BP"></span></button>
         <button class="spot p" data-spot="P"><span class="lbl">PLAYER</span><span class="od">1:1</span><span class="amt zero" data-amt="P">0</span><span class="stack" data-stack="P"></span></button>
         <button class="spot t" data-spot="T"><span class="lbl">TIE</span><span class="od">8:1</span><span class="amt zero" data-amt="T">0</span><span class="stack" data-stack="T"></span></button>
         <button class="spot b" data-spot="B"><span class="lbl">BANKER</span><span class="od">0.95:1</span><span class="amt zero" data-amt="B">0</span><span class="stack" data-stack="B"></span></button>
-        <button class="spot pp" data-spot="PP"><span class="lbl">P PAIR</span><span class="od">11:1</span><span class="amt zero" data-amt="PP">0</span><span class="stack" data-stack="PP"></span></button>
-        <button class="spot bp" data-spot="BP"><span class="lbl">B PAIR</span><span class="od">11:1</span><span class="amt zero" data-amt="BP">0</span><span class="stack" data-stack="BP"></span></button>
       </div>
 
       <div class="chips">
@@ -1196,10 +1244,13 @@
     return cells;
   }
 
-  /* what the next hand would add: the same road run once with a P, once with a B */
+  /* what the next hand would add: the same road run once with a P, once with a B.
+     A road gives no mark for its first k columns, so the answer is null until
+     the next hand would actually draw one — that is the exact increment. */
   function derivedPredict(cols, k){
     var lens = [], i;
     for(i = 0; i < cols.length; i++) lens.push(cols[i].len);
+    var before = marksFromLens(lens, k).length;
     var out = {};
     var sides = ['P', 'B'];
     for(i = 0; i < sides.length; i++){
@@ -1208,13 +1259,51 @@
       if(last && last.side === side) l[l.length - 1] += 1;
       else l.push(1);
       var ms = marksFromLens(l, k);
-      out[side] = ms.length ? ms[ms.length - 1] : null;
+      out[side] = (ms.length > before) ? ms[ms.length - 1] : null;
     }
     return out;
   }
 
   function drMark(cls){
     return '<i class="dms ' + cls + '"></i>';
+  }
+
+  /* =========================================================
+     珠盤路 (6目罫線)
+     The plain bead plate: every hand is a bead, filled top to bottom in
+     columns of six, hand 1 at the very top of the first column and hand 7
+     at the top of the next one. Ties take a bead of their own, so P B T is
+     three beads in a row. A pair leaves its little dot in the corner.
+     ========================================================= */
+  function beadsGridHTML(results){
+    var n = results.length;
+    if(!n) return '';
+    var ncols = Math.ceil(n / 6);
+    var out = '<div class="beads-grid">';
+    for(var c = 0; c < ncols; c++){
+      out += '<div class="beads-col">';
+      for(var row = 0; row < 6; row++){
+        var i = c * 6 + row;
+        if(i >= n){ out += '<div class="bc"></div>'; continue; }
+        var it = results[i], side = it.r;
+        var pair = (side === 'P') ? !!it.p1 : (side === 'B' ? !!it.p2 : false);
+        out += '<div class="bc ' + side.toLowerCase() + '" data-side="' + side + '"' +
+               (pair ? ' data-pair="1"' : '') + '>' +
+               '<span class="bch">' + side + '</span>' +
+               (pair ? '<i class="pm"></i>' : '') + '</div>';
+      }
+      out += '</div>';
+    }
+    return out + '</div>';
+  }
+
+  function renderBeads(t){
+    if(!UI.beads) return;
+    var html = beadsGridHTML(t.results || []);
+    if(UI.beads.innerHTML !== html) UI.beads.innerHTML = html;
+    var box = UI.beads.parentNode;
+    if(box && box.scrollWidth && box.scrollLeft !== box.scrollWidth - box.clientWidth)
+      box.scrollLeft = box.scrollWidth;
   }
 
   function derivedGridHTML(cols, k, sym, cellSize){
@@ -1248,28 +1337,21 @@
       if(box && box.scrollLeft !== undefined) box.scrollLeft = box.scrollWidth;
     }
     if(UI.drPred){
-      var preds = [], has = false, j;
-      for(j = 0; j < DERIVED.length; j++){
-        var pair = derivedPredict(cols, DERIVED[j].k);
-        preds.push(pair);
-        if(pair.P || pair.B) has = true;
-      }
-      if(!has){
-        if(UI.drPred.innerHTML) UI.drPred.innerHTML = '';   /* a fresh shoe: nothing to predict yet */
-      } else {
-        var html = '<span class="dpl">予測</span>';
-        for(var s = 0; s < 2; s++){
-          var side = s ? 'B' : 'P';
-          html += '<span class="dp-side ' + side.toLowerCase() + '"><b>' + side + '</b>';
-          for(j = 0; j < DERIVED.length; j++){
-            var pr = preds[j][side];
-            html += pr ? drMark(DERIVED[j].sym + ' ' + (pr.red ? DR_RED : DR_BLUE))
-                       : '<i class="dms none"></i>';
-          }
-          html += '</span>';
+      /* always drawn: the next P and the next B, mark by mark */
+      var preds = [], j;
+      for(j = 0; j < DERIVED.length; j++) preds.push(derivedPredict(cols, DERIVED[j].k));
+      var html = '<span class="dpl">予測</span>';
+      for(var s = 0; s < 2; s++){
+        var side = s ? 'B' : 'P';
+        html += '<span class="dp-side ' + side.toLowerCase() + '"><b>' + side + '</b>';
+        for(j = 0; j < DERIVED.length; j++){
+          var pr = preds[j][side];
+          html += pr ? drMark(DERIVED[j].sym + ' ' + (pr.red ? DR_RED : DR_BLUE))
+                     : drMark(DERIVED[j].sym + ' none');
         }
-        if(UI.drPred.innerHTML !== html) UI.drPred.innerHTML = html;
+        html += '</span>';
       }
+      if(UI.drPred.innerHTML !== html) UI.drPred.innerHTML = html;
     }
   }
 
@@ -1529,20 +1611,21 @@
 
   /* =========================================================
      the deal: when each card is dealt face down, and when it is turned over
-     (ms from startDeal). The betting is closed, the cards come out in order,
-     then each one is peeled back on its own beat — P1 ... B1 ... P2 ... B2.
+     (ms from startDeal). The window has shut and the table is empty, so the
+     four cards come out of the shoe first — a beat apart — and only once they
+     are all on the felt does the dealer start turning them, one per second.
      ========================================================= */
   function dealPlan(h){
     var plan = [
-      { s:'p', i:0, fly:450,  at:1000, dur:FLIP_MS.base, pace:''     },
-      { s:'b', i:0, fly:760,  at:2080, dur:FLIP_MS.beat, pace:'beat' },
-      { s:'p', i:1, fly:1070, at:3120, dur:FLIP_MS.beat, pace:'beat' },
-      { s:'b', i:1, fly:1380, at:4150, dur:FLIP_MS.beat, pace:'beat' }
+      { s:'p', i:0, fly:300,  at:1700, dur:FLIP_MS.base, pace:''     },
+      { s:'b', i:0, fly:660,  at:2730, dur:FLIP_MS.beat, pace:'beat' },
+      { s:'p', i:1, fly:1020, at:3760, dur:FLIP_MS.beat, pace:'beat' },
+      { s:'b', i:1, fly:1380, at:4790, dur:FLIP_MS.beat, pace:'beat' }
     ];
     /* a third card decides the hand — the dealer calls it, then lays a beat
        on it before turning it over slowly */
-    if(h && h.p.length > 2) plan.push({ s:'p', i:2, fly:5300, at:6350, dur:FLIP_MS.slow, pace:'slow' });
-    if(h && h.b.length > 2) plan.push({ s:'b', i:2, fly:7300, at:8350, dur:FLIP_MS.slow, pace:'slow' });
+    if(h && h.p.length > 2) plan.push({ s:'p', i:2, fly:5900, at:6900, dur:FLIP_MS.slow, pace:'slow' });
+    if(h && h.b.length > 2) plan.push({ s:'b', i:2, fly:7900, at:8900, dur:FLIP_MS.slow, pace:'slow' });
     return plan;
   }
 
@@ -1643,6 +1726,7 @@
     UI.roadMeta = $('road-meta');
     UI.drPred = $('dr-pred');
     UI.drGrids = { bigeye: $('dr-bigeye'), small: $('dr-small'), cockroach: $('dr-cockroach') };
+    UI.beads = $('beads-road');
     UI.panel = $('bet-panel');
     UI.betSt = $('bet-st');
     UI.phaseLabel = $('phase-label');
@@ -1818,14 +1902,6 @@
     return el;
   }
 
-  function backEl(){
-    var el = document.createElement('div');
-    el.className = 'card';
-    el.innerHTML = '<div class="cturn"><div class="cflip"><div class="face back"></div>' +
-      '<div class="face front"></div></div></div>';
-    return el;
-  }
-
   function flyFromShoe(el){
     if(!UI.shoe) return;
     var s = UI.shoe.getBoundingClientRect();
@@ -1838,13 +1914,10 @@
 
   function hostFor(side){ return side === 'p' ? UI.cardsP : UI.cardsB; }
 
+  /* The felt is clear until the hand starts: no cards at all while the bets
+     are open, so a new scene really does begin the moment the window shuts. */
   function buildBetCards(){
-    [UI.cardsP, UI.cardsB].forEach(function(host){
-      host.innerHTML = '';
-      host.appendChild(backEl());
-      host.appendChild(backEl());
-      layoutCards(host);
-    });
+    [UI.cardsP, UI.cardsB].forEach(function(host){ host.innerHTML = ''; });
     UI.scoreP.textContent = '–'; UI.scoreB.textContent = '–';
     UI.scoreP.className = 'score dim'; UI.scoreB.className = 'score dim';
   }
@@ -1931,10 +2004,11 @@
   }
 
   function renderRoad(t){
-    var cell = (window.innerHeight <= 640) ? 13 : (window.innerHeight <= 820 ? 16 : 18);
+    var cell = (window.innerHeight <= 640) ? 11 : (window.innerHeight <= 820 ? 15 : 18);
     UI.road.innerHTML = roadHTML(t.results, cell);
     UI.road.scrollLeft = UI.road.scrollWidth;
     renderDerived(t);
+    renderBeads(t);
     var c = t.counts();
     UI.roadMeta.textContent = 'P ' + c.p + ' · B ' + c.b + ' · T ' + c.t;
     t.dirty = false;
@@ -2493,6 +2567,8 @@
     derivedCells: derivedCells,
     derivedPredict: derivedPredict,
     derivedGridHTML: derivedGridHTML,
+    beadsGridHTML: beadsGridHTML,
+    renderBeads: renderBeads,
     renderDerived: renderDerived,
     DERIVED: DERIVED,
     setTieMode: setTieMode,
