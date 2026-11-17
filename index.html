@@ -252,9 +252,9 @@
   .card + .card{margin-left:calc(var(--cw) * -0.33)}
   .cflip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:50% 50%;
     will-change:transform}
-  .card.open .cflip{animation:peel .34s cubic-bezier(.3,.02,.24,1) both}
-  .card.open.beat .cflip{animation-duration:.47s}
-  .card.open.slow .cflip{animation-duration:.64s}
+  .card.open .cflip{animation:peel .58s cubic-bezier(.3,.02,.24,1) both}
+  .card.open.beat .cflip{animation-duration:.7s}
+  .card.open.slow .cflip{animation-duration:.88s}
   .card.open.instant .cflip{animation:none;transform:rotateY(-180deg)}
   /* lifted between two fingers, turned over toward the player */
   @keyframes peel{
@@ -593,8 +593,16 @@
   var DECKS = 8;
   var PHASE = { BET:'bet', DEAL:'deal' };
   var BET_MS = 12000;
-  var RESULT_MS = 1400;
+  var RESULT_MS = 3500;          // let the result sit on the felt before the next window
   var MIN_SHOE = 26;
+
+  /* the deal runs on one clock: cards are dealt face down first, then turned
+     over one at a time. These are the marks the dealer's call is timed to. */
+  var DEAL_OPEN_MS = 900;        // first card turned over  -> "オープン"
+  var DEAL_NAT_MS = 5000;        // four cards down          -> "ナチュラル"
+  var DEAL_THIRD_MS = 4800;      // third card about to come -> "3枚目"
+  var DEAL_RESTORE_MS = 450;     // a deal younger than this is still dealt live
+  var FLIP_MS = { base:580, beat:700, slow:880 };   // keep in sync with the CSS
 
   /* dealer portraits (web-sized JPEGs inlined as data URIs) */
   var IMG = {
@@ -871,11 +879,11 @@
     if(this.shoe.remaining < MIN_SHOE) this.reshuffle();
     this.hand = dealHand(this.shoe);
     var plan = dealPlan(this.hand);
-    var lastFlip = plan[plan.length - 1].at;
+    var lastFlip = planSettle(plan);
     this.phase = PHASE.DEAL;
     this.dealStart = t;
     /* a natural gets a beat longer so the dealer can call it */
-    this.settleAt = t + lastFlip + (this.hand.natural ? 850 : 420);
+    this.settleAt = t + lastFlip + (this.hand.natural ? 900 : 360);
     this.nextAt = this.settleAt + RESULT_MS;    // then the next betting window
     this.settled = false;
     this.dirty = true;
@@ -951,19 +959,29 @@
   }
 
   /* =========================================================
-     the deal: when each card is turned over (ms from startDeal)
+     the deal: when each card is dealt face down, and when it is turned over
+     (ms from startDeal). The betting is closed, the cards come out in order,
+     then each one is peeled back on its own beat — P1 ... B1 ... P2 ... B2.
      ========================================================= */
   function dealPlan(h){
     var plan = [
-      { s:'p', i:0, fly:0,    at:520,  pace:''     },
-      { s:'b', i:0, fly:110,  at:880,  pace:''     },
-      { s:'p', i:1, fly:230,  at:1310, pace:'beat' },
-      { s:'b', i:1, fly:340,  at:1700, pace:'beat' }
+      { s:'p', i:0, fly:450,  at:1000, dur:FLIP_MS.base, pace:''     },
+      { s:'b', i:0, fly:760,  at:2080, dur:FLIP_MS.beat, pace:'beat' },
+      { s:'p', i:1, fly:1070, at:3120, dur:FLIP_MS.beat, pace:'beat' },
+      { s:'b', i:1, fly:1380, at:4150, dur:FLIP_MS.beat, pace:'beat' }
     ];
-    /* the third card decides the hand — lay a beat on it */
-    if(h && h.p.length > 2) plan.push({ s:'p', i:2, fly:1920, at:2200, pace:'slow' });
-    if(h && h.b.length > 2) plan.push({ s:'b', i:2, fly:2030, at:2340, pace:'slow' });
+    /* a third card decides the hand — the dealer calls it, then lays a beat
+       on it before turning it over slowly */
+    if(h && h.p.length > 2) plan.push({ s:'p', i:2, fly:5300, at:6350, dur:FLIP_MS.slow, pace:'slow' });
+    if(h && h.b.length > 2) plan.push({ s:'b', i:2, fly:7300, at:8350, dur:FLIP_MS.slow, pace:'slow' });
     return plan;
+  }
+
+  /* the last card has finished turning (not just started) before the hand counts */
+  function planSettle(plan){
+    var end = 0;
+    for(var i = 0; i < plan.length; i++) end = Math.max(end, plan[i].at + plan[i].dur);
+    return end;
   }
 
   /* =========================================================
@@ -1218,7 +1236,7 @@
     ['p','b'].forEach(function(side){ hostFor(side).innerHTML = ''; });
     /* a deal that just started is dealt live from the shoe; an older one is
        laid out exactly as the table already shows it */
-    if(at - t.dealStart > 420) syncDeal(t, at, true);
+    if(at - t.dealStart >= DEAL_RESTORE_MS) syncDeal(t, at, true);
   }
 
   function syncDeal(t, ms, silent){
@@ -1393,9 +1411,9 @@
       var el = ms - t.dealStart;
       var h = t.hand;
       var has3 = h && (h.p.length > 2 || h.b.length > 2);
-      if(el < 470) return { key:'stop', text: v.stop, hot:true };
-      if(has3 && el >= 2150) return { key:'third', text: v.third, hot:true };
-      if(h && h.natural && el >= 1950) return { key:'nat', text: v.nat, hot:true };
+      if(el < DEAL_OPEN_MS) return { key:'stop', text: v.stop, hot:true };
+      if(has3 && el >= DEAL_THIRD_MS) return { key:'third', text: v.third, hot:true };
+      if(h && h.natural && el >= DEAL_NAT_MS) return { key:'nat', text: v.nat, hot:true };
       return { key:'open', text: v.open };
     }
     var r = t.lastResult;
@@ -1429,13 +1447,14 @@
 
   function syncScores(t){
     var d = view;
-    if(d.opened.p >= 2 && t.hand){
+    /* the total climbs a card at a time, so you can follow it as it is peeled */
+    if(d.opened.p >= 1 && t.hand){
       UI.scoreP.textContent = partScore(t.hand.p, d.opened.p);
       UI.scoreP.className = 'score';
     } else {
       UI.scoreP.textContent = '–'; UI.scoreP.className = 'score dim';
     }
-    if(d.opened.b >= 2 && t.hand){
+    if(d.opened.b >= 1 && t.hand){
       UI.scoreB.textContent = partScore(t.hand.b, d.opened.b);
       UI.scoreB.className = 'score';
     } else {
@@ -1606,12 +1625,12 @@
      bet: the window is already running   deal: cards are on the felt
      result: the hand is over, the next window is about to open */
   var LIVE_SEED = [
-    { kind:'bet',    left: 8000 },
-    { kind:'deal',   elapsed: 1050 },
-    { kind:'bet',    left: 3200 },
-    { kind:'result', sinceDeal: 4300, left: 2400 },
-    { kind:'bet',    left: 11000 },
-    { kind:'deal',   elapsed: 180 }
+    { kind:'bet',    left: 7600 },
+    { kind:'deal',   elapsed: 2400 },
+    { kind:'bet',    left: 2800 },
+    { kind:'result', left: 2600 },
+    { kind:'bet',    left: 10400 },
+    { kind:'deal',   elapsed: 1100 }
   ];
 
   function seedLive(t, spec, t0){
@@ -1621,7 +1640,11 @@
     } else if(spec.kind === 'deal'){
       t.startDeal(t0 - spec.elapsed);
     } else {
-      t.startDeal(t0 - spec.sinceDeal);
+      /* lay the hand down as if it had already been played out, then park it
+         on the result until the next window opens */
+      t.startDeal(t0);
+      var span = (t.settleAt - t0) + 120;
+      t.dealStart = t0 - span;
       t.settle();
       t.nextAt = t0 + spec.left;
     }
