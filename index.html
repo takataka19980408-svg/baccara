@@ -111,11 +111,31 @@
   .rc .ring{position:absolute;inset:11%;border-radius:50%;border:2px solid currentColor}
   .rc.p .ring{background:rgba(74,144,226,.18)}
   .rc.b .ring{background:rgba(224,87,79,.18)}
+  .rc.t .ring{background:rgba(56,177,108,.20)}
   .rc .slash{position:absolute;left:8%;right:8%;top:50%;height:0;border-top:2px solid #38b16c;
     transform:rotate(-45deg);opacity:.95}
   .rc .slash.s2{transform:rotate(45deg);opacity:.6}
   .rc .pm{position:absolute;top:0;right:0;width:4px;height:4px;border-radius:1px;background:currentColor;opacity:.85}
   .road-empty{color:#4b5c6b;font-size:10.5px;padding:10px 4px;text-align:center}
+
+  /* tie display: slash on the last cell, or a green circle of its own */
+  .tie-toggle{appearance:none;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;
+    border:1px solid #24333f;background:#101a23;color:#9fb1c2;font:inherit;font-size:8.5px;
+    font-weight:800;line-height:1;letter-spacing:.02em;padding:3px 7px 3px 5px;border-radius:999px;
+    white-space:nowrap}
+  .tie-toggle:active{transform:scale(.96)}
+  .tie-toggle:focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
+  .tie-toggle .tgi{position:relative;display:block;width:9px;height:9px;border-radius:50%;
+    border:1px solid rgba(56,177,108,.55);flex:0 0 auto}
+  .tie-toggle .tgi.slash::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;
+    border-top:1.5px solid #38b16c;transform:rotate(-45deg)}
+  .tie-toggle .tgi.circle{background:rgba(56,177,108,.9);border-color:#38b16c;
+    box-shadow:0 0 5px rgba(56,177,108,.55)}
+
+  .lb-roadbar{display:flex;align-items:center;gap:8px;padding:0 14px 7px}
+  .lb-roadbar .rb-lbl{font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#6f8296}
+  .lb-roadbar .tie-toggle{margin-left:auto}
+  .road-hd .rh-right{display:flex;align-items:center;gap:8px}
 
   /* ---------- table screen ---------- */
   .tbar{display:flex;align-items:center;gap:8px;padding:calc(9px + env(safe-area-inset-top)) 12px 8px;
@@ -245,11 +265,15 @@
   .score{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;color:#f4f8fc;line-height:1;
     min-width:22px;text-align:right}
   .score.dim{color:#3d4d5c}
-  .cards{display:flex;align-items:center;flex:1 1 auto;min-height:calc(var(--chh) + 4px);perspective:700px}
+  .cards{display:flex;align-items:center;flex:1 1 auto;gap:var(--cgap,4px);
+    min-height:calc(var(--chh) + 4px);perspective:700px}
 
-  /* face-down / face-up card with a peel-open flip */
-  .card{position:relative;width:var(--cw);height:var(--chh);flex:0 0 auto}
-  .card + .card{margin-left:calc(var(--cw) * -0.33)}
+  /* face-down / face-up card with a peel-open flip.
+     cards never overlap: three of them share the hand's width, so a narrow
+     phone shrinks them instead of stacking them on top of each other */
+  .card{position:relative;flex:0 0 auto;container-type:inline-size;
+    width:min(var(--cw), calc((100% - var(--cgap,4px) * 2) / 3));
+    height:auto;aspect-ratio:62 / 86}
   .cflip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:50% 50%;
     will-change:transform}
   .card.open .cflip{animation:peel .58s cubic-bezier(.3,.02,.24,1) both}
@@ -272,9 +296,9 @@
   .face.front{transform:rotateY(180deg);background:linear-gradient(160deg,#fcfbf7,#e8e4d8);color:#1b2430;
     box-shadow:0 5px 12px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.25);padding:4px 6px}
   .face.front.red{color:#cf3b32}
-  .face.front .cr{position:absolute;top:4%;left:10%;font-size:calc(var(--chh) * .23);font-weight:900;
+  .face.front .cr{position:absolute;top:4%;left:10%;font-size:32cqi;font-weight:900;
     letter-spacing:-.05em;line-height:1.05}
-  .face.front .cb{position:absolute;right:8%;bottom:2%;font-size:calc(var(--chh) * .30);line-height:1;opacity:.95}
+  .face.front .cb{position:absolute;right:8%;bottom:2%;font-size:42cqi;line-height:1;opacity:.95}
   .card.fly{animation:flyIn .3s cubic-bezier(.22,.72,.28,1) both}
   @keyframes flyIn{
     from{transform:translate(var(--fx,0px),var(--fy,0px)) rotate(-15deg) scale(.82);opacity:.1}
@@ -336,6 +360,10 @@
   .spot.b{grid-column:span 2;border-color:#963e39;background:linear-gradient(180deg,#4a1a17,#2e100e);color:#ffd2cd}
   .spot.pp{grid-column:span 3;border-color:#2f4f78;background:linear-gradient(180deg,#16283c,#0e1a27);min-height:40px}
   .spot.bp{grid-column:span 3;border-color:#6b3a37;background:linear-gradient(180deg,#31201f,#1c1313);min-height:40px}
+  /* the opposite side of a table you already backed */
+  .spot.blocked{opacity:.42;filter:saturate(.45);cursor:not-allowed}
+  .spot.blocked::after{content:'';position:absolute;inset:0;border-radius:10px;pointer-events:none;
+    background:repeating-linear-gradient(135deg,rgba(0,0,0,.34) 0 6px,rgba(0,0,0,.10) 6px 12px)}
   .spot .amt{font-size:10.5px;font-weight:900;color:#f0d68a;font-variant-numeric:tabular-nums;line-height:1.3;
     margin-top:1px;letter-spacing:0}
   .spot .amt.zero{display:none}
@@ -470,6 +498,12 @@
         <small>残高</small><b data-wallet>100,000</b>
       </div>
     </header>
+    <div class="lb-roadbar">
+      <span class="rb-lbl">大路 / BIG ROAD</span>
+      <button class="tie-toggle" id="tie-toggle-lobby" type="button" aria-pressed="false">
+        <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
+      </button>
+    </div>
     <div class="lb-list" id="lobby-list"></div>
     <footer class="lb-foot">どの台も勝手に回ってる。大路で流れを見て、ツラが続く台・テレコの台に座って、締切前に張るだけ。</footer>
   </section>
@@ -543,7 +577,7 @@
     </div>
 
     <div class="road-panel">
-      <div class="road-hd"><span>大路 / BIG ROAD</span><span class="meta" id="road-meta">P 0 · B 0 · T 0</span></div>
+      <div class="road-hd"><span>大路 / BIG ROAD</span><span class="rh-right"><span class="meta" id="road-meta">P 0 · B 0 · T 0</span><button class="tie-toggle" id="tie-toggle-table" type="button" aria-pressed="false"><i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span></button></span></div>
       <div class="road-scroll" id="table-road"></div>
     </div>
 
@@ -733,37 +767,76 @@
 
   /* =========================================================
      big road (大路)
+     6 rows down, then a dragon tail that runs sideways along row 5.
+     A new streak starts at row 0 of the next free column, so it never
+     lands on top of a cell the previous dragon already took.
      ========================================================= */
-  function buildRoad(results){
-    var cols = [];
+  var TIE_SLASH = 'slash';        // tie rides on the last decided cell
+  var TIE_CIRCLE = 'circle';      // tie gets a green circle of its own
+  var tieMode = TIE_SLASH;
+
+  function buildRoad(results, mode){
+    mode = (mode === TIE_CIRCLE) ? TIE_CIRCLE : (mode === TIE_SLASH ? TIE_SLASH : tieMode);
+    var cols = [];                // cols[col][row] = cell
+    var cells = [];               // every placed cell, in deal order
+    var occupied = {};            // 'col,row' -> true
+    var cur = null;               // streak being laid down
+
+    function free(c, r){ return !occupied[c + ',' + r]; }
+
+    function put(r, c, row, extra){
+      var cell = { r:r, col:c, row:row, tie:0, pair:false };
+      if(extra) for(var k in extra) cell[k] = extra[k];
+      occupied[c + ',' + row] = true;
+      if(!cols[c]) cols[c] = [];
+      cols[c][row] = cell;
+      cells.push(cell);
+      return cell;
+    }
+
+    function topFreeCol(from){
+      var c = from;
+      while(!free(c, 0)) c++;
+      return c;
+    }
+
     for(var i = 0; i < results.length; i++){
       var it = results[i];
-      if(it.r === 'T'){
-        var lc = cols[cols.length - 1];
-        var cell = lc ? lc[lc.length - 1] : null;
-        if(cell){ cell.tie = Math.min(2, (cell.tie || 0) + 1); }
-        else { cols.push([{ r: null, tie: 1, pair: false }]); }
-        continue;
+
+      if(it.r === 'T' && mode === TIE_SLASH){
+        var last = cells.length ? cells[cells.length - 1] : null;
+        if(last) last.tie = Math.min(2, (last.tie || 0) + 1);
+        continue;               // a tie before the first hand has nothing to ride on
       }
-      var lastCol = cols[cols.length - 1];
-      var last = lastCol ? lastCol[lastCol.length - 1] : null;
+
       var pair = (it.r === 'P') ? !!it.p1 : !!it.p2;
-      if(last && last.r === it.r && lastCol.length < 6){
-        lastCol.push({ r: it.r, tie: 0, pair: pair });
+
+      if(cur && cur.r === it.r){
+        var c = cur.col, row = cur.row;
+        if(row < 5 && free(c, row + 1)){
+          row = row + 1;                        // keep stacking down
+        } else {
+          c = c + 1;                            // six deep -> run along row 5
+          while(!free(c, row)) c++;
+        }
+        put(it.r, c, row, { pair:pair });
+        cur.col = c; cur.row = row;
       } else {
-        cols.push([{ r: it.r, tie: 0, pair: pair }]);
+        var sc = topFreeCol(cur ? cur.startCol + 1 : 0);
+        put(it.r, sc, 0, { pair:pair });
+        cur = { r:it.r, col:sc, row:0, startCol:sc };
       }
     }
-    return cols;
+    return { cols:cols, cells:cells, mode:mode };
   }
 
   function roadHTML(results, cellSize){
-    var cols = buildRoad(results);
+    var cols = buildRoad(results).cols;
     var out = '<div class="road-grid" style="--cell:' + cellSize + 'px">';
     for(var c = 0; c < cols.length; c++){
       out += '<div class="road-col">';
-      for(var r = 0; r < 6; r++){
-        var cell = cols[c][r];
+      for(var row = 0; row < 6; row++){
+        var cell = cols[c] && cols[c][row];
         if(!cell){ out += '<div class="rc"></div>'; continue; }
         var cls = 'rc' + (cell.r ? ' ' + cell.r.toLowerCase() : ' t');
         out += '<div class="' + cls + '">';
@@ -780,11 +853,43 @@
     return out + '</div>';
   }
 
+  /* ---------- tie display toggle (shared by lobby and table) ---------- */
+  function syncTieToggles(){
+    var btns = document.querySelectorAll('.tie-toggle');
+    var circle = tieMode === TIE_CIRCLE;
+    for(var i = 0; i < btns.length; i++){
+      var b = btns[i];
+      var ic = b.querySelector('.tgi');
+      var tx = b.querySelector('.tg-txt');
+      if(ic) ic.className = 'tgi ' + (circle ? 'circle' : 'slash');
+      if(tx) tx.textContent = 'タイ ' + (circle ? '緑丸' : '斜線');
+      b.setAttribute('aria-pressed', circle ? 'true' : 'false');
+      b.title = 'タイ表示: ' + (circle ? '緑丸' : '斜線') + '（押すと切り替え）';
+      b.setAttribute('aria-label', b.title);
+    }
+  }
+
+  function setTieMode(m){
+    tieMode = (m === TIE_CIRCLE) ? TIE_CIRCLE : TIE_SLASH;
+    state.tieMode = tieMode;
+    for(var i = 0; i < tables.length; i++){
+      var t = tables[i];
+      t.dirty = true;
+      if(t.el) updateLobbyCard(t);
+    }
+    if(state.currentTable) renderRoad(state.currentTable);
+    syncTieToggles();
+  }
+
+  function toggleTieMode(){
+    setTieMode(tieMode === TIE_CIRCLE ? TIE_SLASH : TIE_CIRCLE);
+  }
+
   /* =========================================================
      state
      ========================================================= */
   var bank = { balance: 100000 };
-  var state = { currentTable: null, selectedChip: 1000 };
+  var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_SLASH };
   var tables = [];
   var now = function(){ return performance.now(); };
 
@@ -1305,6 +1410,9 @@
   }
 
   function renderBets(t){
+    /* the side you did not back is shown as locked, so a tap never goes
+       against the one-hand-per-table rule by surprise */
+    var shut = t.bets.P > 0 ? 'B' : (t.bets.B > 0 ? 'P' : null);
     UI.spots.forEach(function(el){
       var key = el.getAttribute('data-spot');
       var amt = el.querySelector('[data-amt]');
@@ -1312,6 +1420,9 @@
       var v = t.bets[key] || 0;
       amt.textContent = v ? fmt(v) : '0';
       amt.classList.toggle('zero', !v);
+      el.classList.toggle('blocked', shut === key);
+      if(shut === key) el.title = '同じ卓ではPとBの両張りはできないよ';
+      else el.removeAttribute('title');
       if(stack){
         var html = v ? chipPile(v) : '';
         if(stack.innerHTML !== html) stack.innerHTML = html;
@@ -1531,6 +1642,10 @@
     var t = state.currentTable;
     if(!t) return;
     if(t.phase !== PHASE.BET){ toast('ベットは締め切られたよ'); return; }
+    /* one hand per table: P and B are the two sides of the same coin, so
+       you ride one of them. TIE rides along with either. */
+    if(spot === 'P' && t.bets.B > 0){ toast('同じ卓でPとBの両張りはできないよ。別の台ならOK'); return; }
+    if(spot === 'B' && t.bets.P > 0){ toast('同じ卓でPとBの両張りはできないよ。別の台ならOK'); return; }
     if(amount > bank.balance){ toast('残高が足りません'); return; }
     bank.balance -= amount;
     t.bets[spot] += amount;
@@ -1563,13 +1678,16 @@
     if(!t) return;
     if(t.phase !== PHASE.BET){ toast('ベットは締め切られたよ'); return; }
     if(!t.lastBets){ toast('リピートできるベットがまだないよ'); return; }
+    /* never replay both sides of the same table */
+    var lb = t.lastBets;
+    if(lb.P > 0 && lb.B > 0){ lb = { P:lb.P, B:0, T:lb.T, PP:lb.PP, BP:lb.BP }; }
     var keys = ['P','B','T','PP','BP'];
     var total = 0, i;
-    for(i = 0; i < keys.length; i++) total += t.lastBets[keys[i]];
+    for(i = 0; i < keys.length; i++) total += lb[keys[i]];
     if(!total){ toast('前回はベットしてないよ'); return; }
     if(total > bank.balance){ toast('残高が足りません'); return; }
     bank.balance -= total;
-    for(i = 0; i < keys.length; i++) t.bets[keys[i]] = t.lastBets[keys[i]];
+    for(i = 0; i < keys.length; i++) t.bets[keys[i]] = lb[keys[i]];
     t.staked = total;
     syncWallet();
     renderBets(t);
@@ -1597,6 +1715,13 @@
     $('btn-repeat').addEventListener('click', repeatBets);
     $('btn-clear').addEventListener('click', clearBets);
     $('btn-topup').addEventListener('click', topUp);
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tie-toggle'), function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        toggleTieMode();
+      });
+    });
 
     UI.spots.forEach(function(el){
       el.addEventListener('click', function(){
@@ -1673,6 +1798,7 @@
     tables.forEach(function(t, i){ seedLive(t, LIVE_SEED[i], t0); });
     buildLobby();
     wire();
+    syncTieToggles();
     syncWallet();
     setInterval(loop, 100);
   }
@@ -1689,6 +1815,11 @@
     dealHand: dealHand,
     score: score,
     buildRoad: buildRoad,
+    roadHTML: roadHTML,
+    setTieMode: setTieMode,
+    toggleTieMode: toggleTieMode,
+    TIE_MODES: { slash: TIE_SLASH, circle: TIE_CIRCLE },
+    tieMode: function(){ return tieMode; },
     dealPlan: dealPlan,
     dealerLine: dealerLine,
     openTable: openTable,
