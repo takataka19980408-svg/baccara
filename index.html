@@ -18,7 +18,26 @@
       radial-gradient(130% 70% at 50% -10%, #16283a 0%, rgba(8,13,19,0) 62%),
       radial-gradient(80% 40% at 80% 110%, #12212b 0%, rgba(8,13,19,0) 70%),
       #080c11;
-    border-left:1px solid rgba(255,255,255,.04);border-right:1px solid rgba(255,255,255,.04)}
+    border-left:1px solid rgba(255,255,255,.04);border-right:1px solid rgba(255,255,255,.04);
+    /* P / B palette. The colour toggle swaps the whole set, so every table,
+       the big road and the bet layout follow one switch. Tie stays green. */
+    --p-rgb:74,144,226; --b-rgb:224,87,79;
+    --p-lt-rgb:140,192,255; --b-lt-rgb:255,164,156;
+    --p-ink-rgb:203,226,255; --b-ink-rgb:255,210,205;
+    --p-bd-rgb:47,97,153; --b-bd-rgb:150,62,57;
+    --p-d1-rgb:18,48,90; --p-d2-rgb:12,33,64;
+    --b-d1-rgb:74,26,23; --b-d2-rgb:46,16,14;
+    --p-pair-bd-rgb:47,79,120; --p-pair-1-rgb:22,40,60; --p-pair-2-rgb:14,26,39;
+    --b-pair-bd-rgb:107,58,55; --b-pair-1-rgb:49,32,31; --b-pair-2-rgb:28,19,19}
+  .app.pb-bp{
+    --p-rgb:224,87,79; --b-rgb:74,144,226;
+    --p-lt-rgb:255,164,156; --b-lt-rgb:140,192,255;
+    --p-ink-rgb:255,210,205; --b-ink-rgb:203,226,255;
+    --p-bd-rgb:150,62,57; --b-bd-rgb:47,97,153;
+    --p-d1-rgb:74,26,23; --p-d2-rgb:46,16,14;
+    --b-d1-rgb:18,48,90; --b-d2-rgb:12,33,64;
+    --p-pair-bd-rgb:107,58,55; --p-pair-1-rgb:49,32,31; --p-pair-2-rgb:28,19,19;
+    --b-pair-bd-rgb:47,79,120; --b-pair-1-rgb:22,40,60; --b-pair-2-rgb:14,26,39}
 
   .screen{display:none;flex:1;flex-direction:column;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .screen.active{display:flex}
@@ -76,8 +95,8 @@
   .badge.deal{color:#ffd98a;background:rgba(214,160,60,.14);border-color:rgba(214,160,60,.42)}
   .badge.deal i{background:#ffc24d;box-shadow:0 0 5px rgba(255,194,77,.85)}
   .badge.urgent{color:#ffd0a8;background:rgba(224,110,60,.18);border-color:rgba(224,110,60,.55)}
-  .badge.res-p{color:#8cc0ff;background:rgba(74,144,226,.18);border-color:rgba(74,144,226,.5)}
-  .badge.res-b{color:#ffa49c;background:rgba(224,87,79,.18);border-color:rgba(224,87,79,.5)}
+  .badge.res-p{color:rgb(var(--p-lt-rgb));background:rgba(var(--p-rgb),.18);border-color:rgba(var(--p-rgb),.5)}
+  .badge.res-b{color:rgb(var(--b-lt-rgb));background:rgba(var(--b-rgb),.18);border-color:rgba(var(--b-rgb),.5)}
   .badge.res-t{color:#83e0ae;background:rgba(56,177,108,.18);border-color:rgba(56,177,108,.5)}
   .badge.res-p i,.badge.res-b i,.badge.res-t i{opacity:.65}
   @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.78)}}
@@ -91,7 +110,7 @@
   .seats::before{content:'';width:5px;height:5px;border-radius:50%;background:#7f8fa0;opacity:.9}
   .cnt{display:flex;align-items:center;gap:4px}
   .cnt i{width:7px;height:7px;border-radius:50%;display:block}
-  .cnt i.p{background:#4a90e2}.cnt i.b{background:#e0574f}.cnt i.t{background:#38b16c}
+  .cnt i.p{background:rgb(var(--p-rgb))}.cnt i.b{background:rgb(var(--b-rgb))}.cnt i.t{background:#38b16c}
   .streak{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.04em;padding:3px 8px;border-radius:999px;
     color:#ffdc94;background:rgba(214,160,60,.12);border:1px solid rgba(214,160,60,.3)}
   .streak.empty{visibility:hidden}
@@ -107,10 +126,10 @@
     background-size:var(--cell) var(--cell)}
   .road-col{display:flex;flex-direction:column;width:var(--cell);flex:0 0 var(--cell)}
   .rc{position:relative;width:var(--cell);height:var(--cell);flex:0 0 var(--cell)}
-  .rc.p{color:#4a90e2}.rc.b{color:#e0574f}.rc.t{color:#38b16c}
+  .rc.p{color:rgb(var(--p-rgb))}.rc.b{color:rgb(var(--b-rgb))}.rc.t{color:#38b16c}
   .rc .ring{position:absolute;inset:11%;border-radius:50%;border:2px solid currentColor}
-  .rc.p .ring{background:rgba(74,144,226,.18)}
-  .rc.b .ring{background:rgba(224,87,79,.18)}
+  .rc.p .ring{background:rgba(var(--p-rgb),.18)}
+  .rc.b .ring{background:rgba(var(--b-rgb),.18)}
   .rc.t .ring{background:rgba(56,177,108,.20)}
   .rc .slash{position:absolute;left:8%;right:8%;top:50%;height:0;border-top:2px solid #38b16c;
     transform:rotate(-45deg);opacity:.95}
@@ -132,10 +151,22 @@
   .tie-toggle .tgi.circle{background:rgba(56,177,108,.9);border-color:#38b16c;
     box-shadow:0 0 5px rgba(56,177,108,.55)}
 
+  /* P/B colour toggle: swaps PLAYER blue / BANKER red the world over */
+  .pb-toggle{appearance:none;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;
+    border:1px solid #24333f;background:#101a23;color:#9fb1c2;font:inherit;font-size:8.5px;
+    font-weight:800;line-height:1;letter-spacing:.02em;padding:3px 7px 3px 6px;border-radius:999px;
+    white-space:nowrap}
+  .pb-toggle:active{transform:scale(.96)}
+  .pb-toggle:focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
+  .pb-toggle i{display:block;width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+  .pb-toggle .pdot{background:rgb(var(--p-rgb))}
+  .pb-toggle .bdot{background:rgb(var(--b-rgb))}
+
   .lb-roadbar{display:flex;align-items:center;gap:8px;padding:0 14px 7px}
   .lb-roadbar .rb-lbl{font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#6f8296}
-  .lb-roadbar .tie-toggle{margin-left:auto}
-  .road-hd .rh-right{display:flex;align-items:center;gap:8px}
+  .lb-roadbar .rb-toggles{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .road-hd .rh-right{display:flex;align-items:center;gap:6px}
 
   /* ---------- table screen ---------- */
   .tbar{display:flex;align-items:center;gap:8px;padding:calc(9px + env(safe-area-inset-top)) 12px 8px;
@@ -167,9 +198,9 @@
   .tinfo .crowd .cbar{display:flex;width:48px;height:5px;border-radius:3px;overflow:hidden;background:#182430;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);flex:0 0 auto}
   .tinfo .crowd .cbar em{display:block;height:100%;width:0;transition:width .45s ease}
-  .tinfo .crowd .cp{background:#4a90e2}
+  .tinfo .crowd .cp{background:rgb(var(--p-rgb))}
   .tinfo .crowd .ct{background:#38b16c}
-  .tinfo .crowd .cb{background:#e0574f}
+  .tinfo .crowd .cb{background:rgb(var(--b-rgb))}
   .topup{margin-left:6px;appearance:none;border:1px solid rgba(240,214,138,.45);
     background:linear-gradient(180deg,#3a3115,#241d0c);color:#f0d68a;font-size:10.5px;font-weight:800;
     padding:5px 9px;border-radius:8px}
@@ -251,29 +282,38 @@
 
   .hands{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:auto;
     --cw:62px;--chh:86px}
-  .hand{position:relative;border-radius:12px;padding:8px 9px 10px;min-height:128px;
+  .hand{position:relative;border-radius:12px;padding:8px 9px 10px;min-height:128px;min-width:0;
     border:1px solid #1e2b36;background:linear-gradient(180deg,rgba(11,26,23,.85),rgba(6,14,12,.85));
     display:flex;flex-direction:column;gap:5px;transition:border-color .2s,box-shadow .2s}
-  .hand.p{border-color:rgba(74,144,226,.3)}
-  .hand.b{border-color:rgba(224,87,79,.3)}
-  .hand.win.p{border-color:rgba(74,144,226,.9);box-shadow:0 0 0 1px rgba(74,144,226,.35),0 0 18px rgba(74,144,226,.25)}
-  .hand.win.b{border-color:rgba(224,87,79,.9);box-shadow:0 0 0 1px rgba(224,87,79,.35),0 0 18px rgba(224,87,79,.25)}
+  .hand.p{border-color:rgba(var(--p-rgb),.3)}
+  .hand.b{border-color:rgba(var(--b-rgb),.3)}
+  .hand.win.p{border-color:rgba(var(--p-rgb),.9);box-shadow:0 0 0 1px rgba(var(--p-rgb),.35),0 0 18px rgba(var(--p-rgb),.25)}
+  .hand.win.b{border-color:rgba(var(--b-rgb),.9);box-shadow:0 0 0 1px rgba(var(--b-rgb),.35),0 0 18px rgba(var(--b-rgb),.25)}
   .hand-hd{display:flex;align-items:center;justify-content:space-between}
   .side{font-size:9.5px;font-weight:900;letter-spacing:.14em;padding:2px 6px;border-radius:5px}
-  .side.p{color:#8cc0ff;background:rgba(74,144,226,.14)}
-  .side.b{color:#ffa49c;background:rgba(224,87,79,.14)}
+  .side.p{color:rgb(var(--p-lt-rgb));background:rgba(var(--p-rgb),.14)}
+  .side.b{color:rgb(var(--b-lt-rgb));background:rgba(var(--b-rgb),.14)}
   .score{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;color:#f4f8fc;line-height:1;
     min-width:22px;text-align:right}
   .score.dim{color:#3d4d5c}
-  .cards{display:flex;align-items:center;flex:1 1 auto;gap:var(--cgap,4px);
-    min-height:calc(var(--chh) + 4px);perspective:700px}
+  .cards{display:flex;align-items:center;flex:1 1 auto;gap:var(--cgap,4px);min-width:0;
+    min-height:calc(var(--chh) + 4px);perspective:700px;--cardw:var(--cw,62px)}
 
   /* face-down / face-up card with a peel-open flip.
      cards never overlap: three of them share the hand's width, so a narrow
-     phone shrinks them instead of stacking them on top of each other */
-  .card{position:relative;flex:0 0 auto;container-type:inline-size;
-    width:min(var(--cw), calc((100% - var(--cgap,4px) * 2) / 3));
-    height:auto;aspect-ratio:62 / 86}
+     phone shrinks them instead of stacking them on top of each other.
+     --cardw is measured by JS (layoutCards) because the card that ends a hand
+     is squared sideways, and its footprint is the other way round. */
+  .card{position:relative;flex:0 0 auto;
+    width:var(--cardw,62px);height:calc(var(--cardw,62px) * 86 / 62)}
+  /* the card the hand ends on lies on its side, the way a dealer squares it */
+  .card.side{width:calc(var(--cardw,62px) * 86 / 62);height:var(--cardw,62px)}
+  .cturn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:var(--cardw,62px);height:calc(var(--cardw,62px) * 86 / 62);
+    display:block;transform-style:preserve-3d;container-type:inline-size;
+    transition:transform .38s cubic-bezier(.34,.06,.18,1)}
+  .card.side .cturn{transform:translate(-50%,-50%) rotate(90deg)}
+  .card.noanim .cturn{transition:none}
   .cflip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:50% 50%;
     will-change:transform}
   .card.open .cflip{animation:peel .58s cubic-bezier(.3,.02,.24,1) both}
@@ -315,8 +355,8 @@
     width:max-content;max-width:100%;white-space:nowrap}
   .banner .t{font-size:18px;font-weight:900;letter-spacing:.1em;line-height:1.1}
   .banner .s{font-size:11.5px;font-weight:700;color:#b9c8d6;margin-top:4px;font-variant-numeric:tabular-nums}
-  .banner.p .t{color:#7db6ff;text-shadow:0 0 16px rgba(74,144,226,.55)}
-  .banner.b .t{color:#ff8f86;text-shadow:0 0 16px rgba(224,87,79,.55)}
+  .banner.p .t{color:rgb(var(--p-lt-rgb));text-shadow:0 0 16px rgba(var(--p-rgb),.55)}
+  .banner.b .t{color:rgb(var(--b-lt-rgb));text-shadow:0 0 16px rgba(var(--b-rgb),.55)}
   .banner.t .t{color:#6bdfa2;text-shadow:0 0 16px rgba(56,177,108,.55)}
   @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
 
@@ -343,11 +383,6 @@
   .bet-bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#2b6fbf,#6fc0ff);
     transition:width .1s linear}
   .bet-panel.locked .bet-bar i{background:#3a4a58;width:0 !important}
-  .deal{appearance:none;border:1px solid rgba(240,214,138,.5);border-radius:9px;
-    background:linear-gradient(180deg,#4a3c14,#2a220a);color:#f7e4a8;font-size:11px;font-weight:900;
-    padding:8px 10px;letter-spacing:.02em;white-space:nowrap}
-  .deal:active{transform:scale(.97)}
-  .deal:disabled{opacity:.35;border-color:#2a3a4a;background:#141d26;color:#6d7d8c}
 
   .spots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
   .spot{position:relative;appearance:none;border-radius:10px;padding:7px 4px 8px;min-height:52px;
@@ -355,11 +390,11 @@
     border:1px solid #2a3a4a;background:#0f1922;color:#dce7f1;transition:.12s}
   .spot .lbl{font-size:11.5px;font-weight:900;letter-spacing:.06em}
   .spot .od{font-size:9px;font-weight:700;color:#8fa3b5;letter-spacing:.02em}
-  .spot.p{grid-column:span 2;border-color:#2f6199;background:linear-gradient(180deg,#12305a,#0c2140);color:#cbe2ff}
+  .spot.p{grid-column:span 2;border-color:rgb(var(--p-bd-rgb));background:linear-gradient(180deg,rgb(var(--p-d1-rgb)),rgb(var(--p-d2-rgb)));color:rgb(var(--p-ink-rgb))}
   .spot.t{grid-column:span 2;border-color:#2b7550;background:linear-gradient(180deg,#10362a,#0b241c);color:#c7f2db}
-  .spot.b{grid-column:span 2;border-color:#963e39;background:linear-gradient(180deg,#4a1a17,#2e100e);color:#ffd2cd}
-  .spot.pp{grid-column:span 3;border-color:#2f4f78;background:linear-gradient(180deg,#16283c,#0e1a27);min-height:40px}
-  .spot.bp{grid-column:span 3;border-color:#6b3a37;background:linear-gradient(180deg,#31201f,#1c1313);min-height:40px}
+  .spot.b{grid-column:span 2;border-color:rgb(var(--b-bd-rgb));background:linear-gradient(180deg,rgb(var(--b-d1-rgb)),rgb(var(--b-d2-rgb)));color:rgb(var(--b-ink-rgb))}
+  .spot.pp{grid-column:span 3;border-color:rgb(var(--p-pair-bd-rgb));background:linear-gradient(180deg,rgb(var(--p-pair-1-rgb)),rgb(var(--p-pair-2-rgb)));min-height:40px}
+  .spot.bp{grid-column:span 3;border-color:rgb(var(--b-pair-bd-rgb));background:linear-gradient(180deg,rgb(var(--b-pair-1-rgb)),rgb(var(--b-pair-2-rgb)));min-height:40px}
   /* the opposite side of a table you already backed */
   .spot.blocked{opacity:.42;filter:saturate(.45);cursor:not-allowed}
   .spot.blocked::after{content:'';position:absolute;inset:0;border-radius:10px;pointer-events:none;
@@ -473,6 +508,7 @@
   }
   @media (max-width: 359px){
     .hide-xs{display:none !important}
+    .road-hd .meta{display:none}
     .tinfo{gap:6px;padding:5px 10px}
     .tinfo .crowd b{display:none}
     .tinfo .crowd .b2{display:inline}
@@ -500,9 +536,14 @@
     </header>
     <div class="lb-roadbar">
       <span class="rb-lbl">大路 / BIG ROAD</span>
-      <button class="tie-toggle" id="tie-toggle-lobby" type="button" aria-pressed="false">
-        <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
-      </button>
+      <span class="rb-toggles">
+        <button class="tie-toggle" id="tie-toggle-lobby" type="button" aria-pressed="false">
+          <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
+        </button>
+        <button class="pb-toggle" id="pb-toggle-lobby" type="button" aria-pressed="false">
+          <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P青 B赤</span>
+        </button>
+      </span>
     </div>
     <div class="lb-list" id="lobby-list"></div>
     <footer class="lb-foot">どの台も勝手に回ってる。大路で流れを見て、ツラが続く台・テレコの台に座って、締切前に張るだけ。</footer>
@@ -577,7 +618,18 @@
     </div>
 
     <div class="road-panel">
-      <div class="road-hd"><span>大路 / BIG ROAD</span><span class="rh-right"><span class="meta" id="road-meta">P 0 · B 0 · T 0</span><button class="tie-toggle" id="tie-toggle-table" type="button" aria-pressed="false"><i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span></button></span></div>
+      <div class="road-hd">
+        <span>大路 / BIG ROAD</span>
+        <span class="rh-right">
+          <span class="meta" id="road-meta">P 0 · B 0 · T 0</span>
+          <button class="tie-toggle" id="tie-toggle-table" type="button" aria-pressed="false">
+            <i class="tgi slash"></i><span class="tg-txt">タイ 斜線</span>
+          </button>
+          <button class="pb-toggle" id="pb-toggle-table" type="button" aria-pressed="false">
+            <i class="pdot"></i><i class="bdot"></i><span class="pb-txt">P青 B赤</span>
+          </button>
+        </span>
+      </div>
       <div class="road-scroll" id="table-road"></div>
     </div>
 
@@ -585,7 +637,6 @@
       <div class="bet-hd">
         <div class="bet-st" id="bet-st"><span id="phase-label">ベット受付中</span><b id="countdown">12</b><span class="u">s</span></div>
         <div class="bet-bar"><i id="bet-bar"></i></div>
-        <button class="deal" id="btn-deal">今すぐディール</button>
       </div>
 
       <div class="spots">
@@ -885,11 +936,44 @@
     setTieMode(tieMode === TIE_CIRCLE ? TIE_SLASH : TIE_CIRCLE);
   }
 
+  /* ---------- P / B colour toggle (shared by lobby and table) ----------
+     The palette lives in CSS variables on .app, so flipping one class repaints
+     the big road, the hands, the bet layout and the result banner together. */
+  var PB_PB = 'pb';               // P blue / B red — the table's usual colours
+  var PB_BP = 'bp';               // P red  / B blue
+  var pbMode = PB_PB;
+
+  function syncPbToggles(){
+    var btns = document.querySelectorAll('.pb-toggle');
+    var swapped = pbMode === PB_BP;
+    var label = swapped ? 'P赤 B青' : 'P青 B赤';
+    for(var i = 0; i < btns.length; i++){
+      var b = btns[i];
+      var tx = b.querySelector('.pb-txt');
+      if(tx && tx.textContent !== label) tx.textContent = label;
+      b.setAttribute('aria-pressed', swapped ? 'true' : 'false');
+      b.title = 'プレイヤー／バンカーの色: ' + label + '（押すと入れ替え）';
+      b.setAttribute('aria-label', b.title);
+    }
+  }
+
+  function setPbMode(m){
+    pbMode = (m === PB_BP) ? PB_BP : PB_PB;
+    state.pbMode = pbMode;
+    var app = document.querySelector('.app');
+    if(app) app.classList.toggle('pb-bp', pbMode === PB_BP);
+    syncPbToggles();
+  }
+
+  function togglePbMode(){
+    setPbMode(pbMode === PB_BP ? PB_PB : PB_BP);
+  }
+
   /* =========================================================
      state
      ========================================================= */
   var bank = { balance: 100000 };
-  var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_SLASH };
+  var state = { currentTable: null, selectedChip: 1000, tieMode: TIE_SLASH, pbMode: PB_PB };
   var tables = [];
   var now = function(){ return performance.now(); };
 
@@ -1090,6 +1174,60 @@
   }
 
   /* =========================================================
+     the card a hand ends on is laid sideways, the way a real dealer squares
+     the hand: a third card comes out of the shoe already across, and when a
+     side stands on two cards the second one is turned across on the peek
+     that ends it (natural, 6/7 on player, banker standing).
+     Returns, per side, which card turns and when (ms from startDeal).
+     ========================================================= */
+  function turnPlan(h){
+    var out = { p:{ i:-1, at:0 }, b:{ i:-1, at:0 } };
+    if(!h) return out;
+    var plan = dealPlan(h), by = {}, fin = {};
+    for(var i = 0; i < plan.length; i++){
+      var s = plan[i];
+      by[s.s + s.i] = s;
+      fin[s.s + s.i] = s.at + s.dur;
+    }
+    /* player: a third card is the last one; otherwise it stands on 6/7 the
+       moment the second card is turned */
+    if(h.p.length > 2) out.p = { i:2, at:(by.p2 ? by.p2.fly : 0) };
+    else out.p = { i:1, at:(fin.p1 || 0) + 220 };
+
+    if(h.b.length > 2){
+      out.b = { i:2, at:(by.b2 ? by.b2.fly : 0) };
+    } else {
+      /* banker stands on two: right after its own card, or after the player's
+         third card has been read and the draw table says stand */
+      var at = (fin.b1 || 0) + 220;
+      if(h.p.length > 2) at = Math.max(at, (fin.p2 || 0) + 260);
+      out.b = { i:1, at:at };
+    }
+    return out;
+  }
+
+  /* Card width is measured, not guessed: an across card takes a wide slot, so
+     the whole hand is sized to fit the hand panel with no overlap. */
+  var CARD_RATIO = 86 / 62;
+  function layoutCards(host){
+    if(!host) return;
+    var n = host.children.length;
+    if(!n) return;
+    var avail = host.clientWidth;
+    if(!avail) return;
+    var cs = getComputedStyle(host);
+    var gap = parseFloat(cs.columnGap) || 4;
+    var maxW = parseFloat(cs.getPropertyValue('--cw')) || 62;
+    var across = 0;
+    for(var i = 0; i < n; i++) if(host.children[i].classList.contains('side')) across++;
+    var units = (n - across) + across * CARD_RATIO;
+    var w = Math.min(maxW, (avail - gap * (n - 1)) / units);
+    if(w < 12) w = 12;
+    var css = w.toFixed(2) + 'px';
+    if(host.style.getPropertyValue('--cardw') !== css) host.style.setProperty('--cardw', css);
+  }
+
+  /* =========================================================
      DOM
      ========================================================= */
   var $ = function(id){ return document.getElementById(id); };
@@ -1128,7 +1266,6 @@
     UI.phaseLabel = $('phase-label');
     UI.countdown = $('countdown');
     UI.bar = $('bet-bar');
-    UI.dealBtn = $('btn-deal');
     UI.betTotal = $('bet-total');
     UI.repeat = $('btn-repeat');
     UI.clear = $('btn-clear');
@@ -1291,15 +1428,16 @@
     var front = '<div class="face front' + (card && card.red ? ' red' : '') + '">' +
         (card ? '<span class="cr">' + card.r + '</span><span class="cb">' + card.s + '</span>' : '') +
       '</div>';
-    el.innerHTML = '<div class="cflip"><div class="face back"></div>' + front + '</div>';
+    el.innerHTML = '<div class="cturn"><div class="cflip"><div class="face back"></div>' + front +
+      '</div></div>';
     return el;
   }
 
   function backEl(){
     var el = document.createElement('div');
     el.className = 'card';
-    el.innerHTML = '<div class="cflip"><div class="face back"></div>' +
-      '<div class="face front"></div></div>';
+    el.innerHTML = '<div class="cturn"><div class="cflip"><div class="face back"></div>' +
+      '<div class="face front"></div></div></div>';
     return el;
   }
 
@@ -1320,6 +1458,7 @@
       host.innerHTML = '';
       host.appendChild(backEl());
       host.appendChild(backEl());
+      layoutCards(host);
     });
     UI.scoreP.textContent = '–'; UI.scoreB.textContent = '–';
     UI.scoreP.className = 'score dim'; UI.scoreB.className = 'score dim';
@@ -1348,6 +1487,8 @@
     if(!t.hand) return;
     var elapsed = ms - t.dealStart;
     var plan = dealPlan(t.hand);
+    var turn = turnPlan(t.hand);
+    var touched = { p:false, b:false };
 
     for(var k = 0; k < plan.length; k++){
       var step = plan[k];
@@ -1358,6 +1499,7 @@
         var el = cardEl(step.s, step.i, t.hand[step.s][step.i]);
         host.appendChild(el);
         view.built[step.s] = step.i + 1;
+        touched[step.s] = true;
         if(silent) el.classList.add('instant');
         else flyFromShoe(el);
       }
@@ -1373,6 +1515,21 @@
         }
       }
     }
+
+    /* the card that ends a side is squared sideways: a third card comes out
+       that way, a two-card stand turns its second card when the peek ends it */
+    ['p','b'].forEach(function(side){
+      var tp = turn[side];
+      if(tp.i < 0 || elapsed < tp.at) return;
+      var card = hostFor(side).children[tp.i];
+      if(!card || card.classList.contains('side')) return;
+      if(silent) card.classList.add('noanim');
+      card.classList.add('side');
+      touched[side] = true;
+    });
+
+    if(touched.p) layoutCards(UI.cardsP);
+    if(touched.b) layoutCards(UI.cardsB);
   }
 
   function renderTable(){
@@ -1608,7 +1765,6 @@
       UI.bar.style.width = '0%';
     }
     UI.panel.classList.toggle('locked', !betting);
-    UI.dealBtn.disabled = !betting;
 
     /* shoe line + who else is sitting here */
     UI.tShoe.textContent = 'シュー #' + t.shoeNo;
@@ -1705,13 +1861,6 @@
      ========================================================= */
   function wire(){
     $('btn-back').addEventListener('click', backToLobby);
-    $('btn-deal').addEventListener('click', function(){
-      var t = state.currentTable;
-      if(!t || t.phase !== PHASE.BET) return;
-      t.startDeal(now());
-      resetView(t, now());
-      updateTableLive();
-    });
     $('btn-repeat').addEventListener('click', repeatBets);
     $('btn-clear').addEventListener('click', clearBets);
     $('btn-topup').addEventListener('click', topUp);
@@ -1721,6 +1870,19 @@
         e.preventDefault(); e.stopPropagation();
         toggleTieMode();
       });
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.pb-toggle'), function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        togglePbMode();
+      });
+    });
+
+    /* a rotated card needs a new footprint once the phone turns */
+    window.addEventListener('resize', function(){
+      layoutCards(UI.cardsP);
+      layoutCards(UI.cardsB);
     });
 
     UI.spots.forEach(function(el){
@@ -1799,6 +1961,7 @@
     buildLobby();
     wire();
     syncTieToggles();
+    syncPbToggles();
     syncWallet();
     setInterval(loop, 100);
   }
@@ -1820,7 +1983,14 @@
     toggleTieMode: toggleTieMode,
     TIE_MODES: { slash: TIE_SLASH, circle: TIE_CIRCLE },
     tieMode: function(){ return tieMode; },
+    setPbMode: setPbMode,
+    togglePbMode: togglePbMode,
+    PB_MODES: { pb: PB_PB, bp: PB_BP },
+    pbMode: function(){ return pbMode; },
     dealPlan: dealPlan,
+    planSettle: planSettle,
+    turnPlan: turnPlan,
+    layoutCards: layoutCards,
     dealerLine: dealerLine,
     openTable: openTable,
     backToLobby: backToLobby,
@@ -1833,6 +2003,37 @@
     flashStage: flashStage,
     seedLive: seedLive,
     LIVE_SEED: LIVE_SEED,
+    /* deal the hand that is waiting (used where the old button was) */
+    dealNow: function(){
+      var tb = state.currentTable;
+      if(!tb || tb.phase !== PHASE.BET) return false;
+      tb.startDeal(now());
+      resetView(tb, now());
+      updateTableLive();
+      return true;
+    },
+    /* lay a chosen hand on the felt, optionally frozen, for rule tests */
+    stageHand: function(i, seq, opts){
+      opts = opts || {};
+      var cards = seq.map(function(x){
+        var red = (x.s === '♥' || x.s === '♦');
+        return { r:x.r, s:x.s, v:cardValue(x.r), red:red };
+      });
+      cards.reverse();               // dealHand pops from the end
+      var h = dealHand(new Shoe(cards));
+      var tb = tables[i];
+      var plan = dealPlan(h);
+      tb.hand = h;
+      tb.phase = PHASE.DEAL;
+      tb.dealStart = now() - (opts.elapsed || 0);
+      tb.settleAt = opts.hold ? now() + 3600e3 : tb.dealStart + planSettle(plan) + 600;
+      tb.nextAt = tb.settleAt + RESULT_MS;
+      tb.settled = false;
+      tb.dirty = true;
+      if(state.currentTable === tb) resetView(tb, now());
+      return { p:h.p.length, b:h.b.length, result:h.result, natural:!!h.natural,
+               turn:turnPlan(h), plan:plan };
+    },
     forceDeal: function(i){
       var tb = tables[i];
       tb.startDeal(now());
