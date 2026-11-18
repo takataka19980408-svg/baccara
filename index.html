@@ -184,6 +184,7 @@
   .back{appearance:none;border:1px solid #2a3a4a;background:#131d27;color:#cdd9e4;
     font-size:11.5px;font-weight:800;padding:7px 10px;border-radius:9px;letter-spacing:.02em}
   .back:active{background:#1b2836}
+  .back .bk-txt{margin-left:4px}
   .tb-mid{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
   .avatar.sm{width:29px;height:29px;font-size:11px;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
   .avatar.sm.ph{box-shadow:0 0 0 1px rgba(240,214,138,.35),0 2px 6px rgba(0,0,0,.45)}
@@ -558,6 +559,14 @@
     .tinfo{gap:6px;padding:5px 10px}
     .tinfo .crowd b{display:none}
     .tinfo .crowd .b2{display:inline}
+    .wallet b{font-size:15px}
+    .sync-chip{margin-left:4px}
+    .sync-chip span{display:none}
+    .hx-head .sync-chip span{display:inline}
+    .hist-btn{padding:0 6px;font-size:10px;height:26px}
+    /* 320px: the bar keeps the table's name readable — the arrow is enough back */
+    .back .bk-txt{display:none}
+    .tbar{gap:6px}
     .tinfo .crowd .cbar{width:36px}
     .live-pill{letter-spacing:.06em;padding:2px 5px 2px 4px}
     .badge{min-width:80px;font-size:10px;padding:5px 6px;gap:4px}
@@ -573,6 +582,84 @@
   .master-btn:active{background:#18242f;color:#c8d6e2}
   .master-btn:focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
   .lb-right{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+  /* ---------- 保存の状態（小さな点と文字だけ） & 履歴ボタン ----------
+     残高の見出しの横に収める。320px幅でも残高・履歴・⚙が一直線に並ぶ大きさ。 */
+  .wallet small{white-space:nowrap}
+  .sync-chip{display:inline-flex;align-items:center;gap:3px;margin-left:5px;
+    font-size:8px;font-weight:800;letter-spacing:.02em;color:#6f8296;vertical-align:1px}
+  .sync-chip i{width:4px;height:4px;border-radius:50%;background:#4a5f72;flex:0 0 auto}
+  .sync-chip.s-loading{color:#c2a765}
+  .sync-chip.s-loading i{background:#e0b45a;animation:syncPulse 1s linear infinite}
+  .sync-chip.s-saving{color:#c2a765}
+  .sync-chip.s-saving i{background:#e0b45a;animation:syncPulse 1s linear infinite}
+  .sync-chip.s-saved i{background:#38b16c}
+  .sync-chip.s-offline{color:#c98b86}
+  .sync-chip.s-offline i{background:#e0574f}
+  @keyframes syncPulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .hist-btn{appearance:none;flex:0 0 auto;height:28px;padding:0 8px;border-radius:8px;
+    border:1px solid #2a3a4a;background:rgba(16,26,35,.72);color:#a9bac9;
+    font-size:10.5px;font-weight:900;letter-spacing:.06em;line-height:1;display:grid;place-items:center}
+  .hist-btn:active{background:#18242f;color:#cdd9e4}
+  .hist-btn:focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
+
+  /* ---------- 履歴 ----------
+     The master sheet's sibling: same slide-up, but it is a readable list. */
+  .hist{position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(3,6,9,.7);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s,visibility .18s}
+  .hist.open{opacity:1;visibility:visible;pointer-events:auto}
+  .hx-sheet{width:100%;max-width:460px;max-height:94%;min-height:0;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#151f29 0%,#0a1118 100%);
+    border:1px solid #2b3c4c;border-bottom:none;border-radius:18px 18px 0 0;
+    box-shadow:0 -16px 44px rgba(0,0,0,.65);transform:translateY(22px);transition:transform .2s ease-out}
+  .hist.open .hx-sheet{transform:none}
+  .hx-head{display:flex;align-items:center;gap:7px;padding:12px 14px 9px;
+    border-bottom:1px solid rgba(255,255,255,.06)}
+  .hx-head .sync-chip{margin-left:0;font-size:8.5px}
+  .hx-title{font-size:13px;font-weight:900;letter-spacing:.16em;color:#f0d68a}
+  .hx-close{margin-left:auto;appearance:none;width:30px;height:30px;padding:0;border-radius:9px;
+    border:1px solid #2a3a4a;background:#131d27;color:#cdd9e4;font-size:12px;font-weight:800;line-height:1}
+  .hx-close:active{background:#1b2836}
+  .hx-sum{margin:9px 12px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .hx-sum > div{background:rgba(255,255,255,.03);border:1px solid #1e2b38;border-radius:10px;
+    padding:6px 3px 7px;text-align:center;min-width:0}
+  .hx-sum small{display:block;font-size:8px;font-weight:800;letter-spacing:.08em;color:#7d8fa0;margin-bottom:2px;white-space:nowrap}
+  .hx-sum b{display:block;font-size:12px;font-weight:900;color:#e8eef5;font-variant-numeric:tabular-nums;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hx-sum b.up{color:#63d69a} .hx-sum b.down{color:#ff8f86}
+  .hx-list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:8px 12px 6px;display:flex;flex-direction:column;gap:6px}
+  .hx-it{background:rgba(255,255,255,.024);border:1px solid #1c2836;border-radius:10px;
+    padding:7px 9px 8px;display:flex;flex-direction:column;gap:3px;min-width:0}
+  .hx-it.adj{background:rgba(240,214,138,.05);border-color:#2f2a17}
+  .hx-r{display:flex;align-items:center;gap:6px;min-width:0}
+  .hx-r2{justify-content:space-between}
+  .hx-res{flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.03em;padding:2px 5px;border-radius:6px;
+    border:1px solid #2a3a4a;color:#cdd9e4}
+  .hx-res.p{color:#ffb3ac;border-color:rgba(224,87,79,.55);background:rgba(224,87,79,.12)}
+  .hx-res.b{color:#a8ccff;border-color:rgba(74,144,226,.55);background:rgba(74,144,226,.12)}
+  .hx-res.t{color:#8fe0b4;border-color:rgba(56,177,108,.55);background:rgba(56,177,108,.12)}
+  .hx-res.adj{color:#f0d68a;border-color:rgba(240,214,138,.45);background:rgba(240,214,138,.1)}
+  .hx-sc{flex:0 0 auto;font-size:11.5px;font-weight:900;color:#dfe8f1;font-variant-numeric:tabular-nums}
+  .hx-pr{flex:0 0 auto;font-size:8.5px;font-weight:800;color:#9a8a5a;letter-spacing:.02em}
+  .hx-net{margin-left:auto;flex:0 0 auto;font-size:12.5px;font-weight:900;font-variant-numeric:tabular-nums}
+  .hx-net.up{color:#63d69a} .hx-net.down{color:#ff8f86} .hx-net.flat{color:#8fa3b5}
+  .hx-meta{flex:1;min-width:0;font-size:9.5px;font-weight:700;color:#7f909f;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hx-bets{flex:1;min-width:0;font-size:9.5px;font-weight:700;color:#93a5b6;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hx-bal{flex:0 0 auto;font-size:9.5px;font-weight:700;color:#6f8296;white-space:nowrap}
+  .hx-empty{margin:auto;padding:26px 12px;text-align:center;font-size:11.5px;line-height:1.8;color:#6f8296}
+  .hx-foot{display:flex;gap:8px;padding:8px 12px calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(255,255,255,.06)}
+  .hx-btn{flex:1;min-width:0;appearance:none;border:1px solid #2a3a4a;background:#131d27;color:#cdd9e4;
+    font-size:11.5px;font-weight:900;letter-spacing:.03em;padding:10px 6px;border-radius:11px;white-space:nowrap}
+  .hx-btn:active{background:#1b2836}
+  .hx-btn.danger{color:#e6a6a0;border-color:#4a2b28;background:#1a1212}
+  .hx-btn.danger.armed{color:#fff;border-color:#8c3a33;background:#4a1d19}
+  body.hist-open .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-12px)}
+  body.hist-open .toast.show{transform:translate(-50%,0)}
 
   .master{position:fixed;inset:0;z-index:95;display:flex;align-items:flex-end;justify-content:center;
     background:rgba(3,6,9,.7);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);
@@ -645,8 +732,9 @@
       </div>
       <div class="lb-right">
         <div class="wallet" id="lb-wallet-wrap">
-          <small>残高</small><b data-wallet>100,000</b>
+          <small>残高<span class="sync-chip s-loading" data-sync title=""><i></i><span>同期中</span></span></small><b data-wallet>100,000</b>
         </div>
+        <button class="hist-btn" id="btn-hist-lobby" type="button" aria-label="履歴を開く" title="履歴">履歴</button>
         <button class="master-btn" id="btn-master-lobby" type="button" aria-label="マスター画面を開く" title="マスター画面">⚙</button>
       </div>
     </header>
@@ -668,7 +756,7 @@
   <!-- ============ TABLE ============ -->
   <section id="screen-table" class="screen">
     <header class="tbar">
-      <button class="back" id="btn-back">← ロビー</button>
+      <button class="back" id="btn-back" aria-label="ロビーへ戻る">←<span class="bk-txt">ロビー</span></button>
       <div class="tb-mid">
         <div class="avatar sm ph" id="t-avatar"><img alt="" id="t-avatar-img"></div>
         <div class="nm">
@@ -677,8 +765,9 @@
         </div>
       </div>
       <div class="wallet" id="t-wallet-wrap">
-        <small>残高</small><b data-wallet>100,000</b>
+        <small>残高<span class="sync-chip s-loading" data-sync title=""><i></i><span>同期中</span></span></small><b data-wallet>100,000</b>
       </div>
+      <button class="hist-btn" id="btn-hist-table" type="button" aria-label="履歴を開く" title="履歴">履歴</button>
       <button class="master-btn" id="btn-master-table" type="button" aria-label="マスター画面を開く" title="マスター画面">⚙</button>
     </header>
 
@@ -835,8 +924,25 @@
             </div>
           </div>
         </section>
-        <p class="ms-note">マスターの設定はこの画面の中だけ。開き直すと残高は10万に戻るよ。</p>
+        <p class="ms-note">残高の変更はその場で保存されるよ（履歴にも残る）。ベット受付とシューの設定はこの画面の中だけ。</p>
         <button class="ms-done" id="master-done" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 履歴 ============ -->
+  <div class="hist" id="hist" aria-hidden="true">
+    <div class="hx-sheet" role="dialog" aria-modal="true" aria-label="履歴">
+      <div class="hx-head">
+        <div class="hx-title">履歴</div>
+        <span class="sync-chip s-loading" data-sync title=""><i></i><span>同期中</span></span>
+        <button class="hx-close" id="hist-close" type="button" aria-label="閉じる">✕</button>
+      </div>
+      <div class="hx-sum" id="hist-sum"></div>
+      <div class="hx-list" id="hist-list"></div>
+      <div class="hx-foot">
+        <button class="hx-btn" id="hist-reload" type="button">最新を再読込</button>
+        <button class="hx-btn danger" id="hist-reset" type="button">履歴をリセット</button>
       </div>
     </div>
   </div>
@@ -1499,6 +1605,456 @@
   }
 
   /* =========================================================
+     persistence — Firebase Realtime Database over its REST API
+     No SDK: the page stays one file. A GET of the balance and a GET of
+     the last 100 records when it opens, a PUT of the balance and a POST
+     of the record the moment a hand you bet on is settled. localStorage
+     keeps the same numbers so the screen opens instantly and the game
+     still works with no network at all (the next save catches up).
+     ========================================================= */
+  var DB_URL = 'https://baccarat-lobby-default-rtdb.firebaseio.com/baccara';
+  var LS_KEY = 'bac.v1';        // this device's copy of the same numbers
+  var HIST_MAX = 200;
+
+  var store = {
+    balance: 100000,
+    updatedAt: 0,
+    history: [],                // newest first, {type:'bet'|'adjust', ...}
+    pending: [],                // records the database has not taken yet
+    dirty: false,               // the balance changed and is not saved yet
+    loaded: false
+  };
+  var syncState = 'loading';
+
+  var LS_OK = (function(){
+    try { window.localStorage.setItem('__bac_t', '1'); window.localStorage.removeItem('__bac_t'); return true; }
+    catch(e){ return false; }
+  })();
+
+  function lsSave(){
+    if(!LS_OK) return;
+    try {
+      window.localStorage.setItem(LS_KEY, JSON.stringify({
+        balance: Math.round(bank.balance), updatedAt: store.updatedAt,
+        dirty: !!store.dirty, history: store.history.slice(0, HIST_MAX),
+        pending: store.pending
+      }));
+    } catch(e){ /* a full or blocked storage must not break the game */ }
+  }
+
+  function lsLoad(){
+    if(!LS_OK) return null;
+    try {
+      var raw = window.localStorage.getItem(LS_KEY);
+      if(!raw) return null;
+      var o = JSON.parse(raw);
+      return (o && typeof o === 'object') ? o : null;
+    } catch(e){ return null; }
+  }
+
+  var SYNC_TEXT = { loading:'同期中', saving:'保存中', saved:'DB保存済', offline:'オフライン' };
+  function setSync(state){
+    syncState = state;
+    var chips = document.querySelectorAll('.sync-chip');
+    for(var i = 0; i < chips.length; i++){
+      var c = chips[i];
+      c.className = 'sync-chip s-' + state;
+      c.setAttribute('data-state', state);
+      c.setAttribute('title', state === 'offline'
+        ? 'データベースに繋がらないので、この端末に保存しているよ'
+        : (state === 'saved' ? 'Firebase Realtime Database に保存済み' : 'データベースとやり取り中'));
+      var t = c.querySelector('span');
+      if(t) t.textContent = SYNC_TEXT[state] || state;
+    }
+  }
+  function settleSyncState(failed){
+    if(failed) setSync('offline');
+    else setSync((store.dirty || store.pending.length) ? 'saving' : 'saved');
+  }
+
+  /* one fetch with an 8s leash: a dead network must not leave
+     the indicator spinning forever */
+  function api(path, opts){
+    opts = opts || {};
+    var timer = null;
+    if(window.AbortController){
+      var ctl = new AbortController();
+      opts.signal = ctl.signal;
+      timer = setTimeout(function(){ try { ctl.abort(); } catch(e){} }, 8000);
+    }
+    if(opts.body && !opts.headers) opts.headers = { 'Content-Type': 'application/json' };
+    return fetch(DB_URL + path, opts).then(function(r){
+      if(timer) clearTimeout(timer);
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }, function(e){ if(timer) clearTimeout(timer); throw e; });
+  }
+  function apiGet(path){ return api(path, { cache:'no-store' }); }
+  function apiPut(path, body){ return api(path, { method:'PUT', cache:'no-store', body: JSON.stringify(body) }); }
+  function apiPost(path, body){ return api(path, { method:'POST', cache:'no-store', body: JSON.stringify(body) }); }
+  function apiDelete(path){ return api(path, { method:'DELETE', cache:'no-store' }); }
+
+  function histKey(e){
+    return e._key ? ('k:' + e._key) : ('t:' + (e.type || '') + ':' + (e.ts || 0) + ':' + (e.totalBet || e.delta || 0));
+  }
+
+  function renderHistoryIfOpen(){ if(histOpen) renderHistory(); }
+
+  /* --- the balance --- */
+  function saveBalance(){
+    store.dirty = true;
+    store.balance = Math.round(bank.balance);
+    lsSave();
+    setSync('saving');
+    apiPut('/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
+      store.dirty = false;
+      store.updatedAt = Date.now();
+      lsSave();
+      settleSyncState(0);
+    }).catch(function(){
+      setSync('offline');
+    });
+  }
+
+  /* --- one record --- */
+  function sendHistory(entry){
+    setSync('saving');
+    apiPost('/history.json', entry).then(function(res){
+      if(res && res.name) entry._key = res.name;
+      var i = store.pending.indexOf(entry);
+      if(i >= 0) store.pending.splice(i, 1);
+      lsSave();
+      settleSyncState(0);
+      if(store.dirty) saveBalance();
+    }).catch(function(){
+      if(store.pending.indexOf(entry) < 0) store.pending.push(entry);
+      lsSave();
+      setSync('offline');
+    });
+  }
+
+  function record(entry){
+    entry.ts = entry.ts || Date.now();
+    store.history.unshift(entry);
+    if(store.history.length > HIST_MAX) store.history.length = HIST_MAX;
+    lsSave();
+    renderHistoryIfOpen();
+    sendHistory(entry);
+  }
+
+  /* a hand you bet on was settled: the whole局 goes to the book */
+  function recordBetResult(t, h, b, ret){
+    record({
+      ts: Date.now(), type: 'bet',
+      tableId: t.id, tableName: 'TABLE ' + t.id + ' · ' + t.dealer.name,
+      shoe: t.shoeNo, handNo: t.dealt,
+      bets: { P: b.P, B: b.B, T: b.T, PP: b.PP, BP: b.BP },
+      totalBet: t.staked,
+      winner: h.result, pScore: score(h.p), bScore: score(h.b),
+      pPair: !!h.pPair, bPair: !!h.bPair,
+      payout: ret, net: ret - t.staked,
+      balanceAfter: Math.round(bank.balance)
+    });
+    saveBalance();
+  }
+
+  /* the master's taps on the balance */
+  function recordAdjust(label, delta){
+    record({
+      ts: Date.now(), type: 'adjust', label: label,
+      delta: Math.round(delta), balanceAfter: Math.round(bank.balance)
+    });
+    saveBalance();
+  }
+
+  /* --- opening the page --- */
+  function pullPlayer(local){
+    return apiGet('/player.json').then(function(p){
+      var remote = (p && typeof p === 'object' && isFinite(p.balance)) ? Math.round(p.balance) : null;
+      var hasLocal = !!(local && isFinite(local.balance));
+      if(remote === null){
+        /* 初回：空の台帳に初期値を置く（手元に残高があるならそれを持ち上げる） */
+        var seed = hasLocal ? Math.round(local.balance) : Math.round(bank.balance);
+        return apiPut('/player.json', { balance: seed, updatedAt: Date.now() }).then(function(){
+          store.updatedAt = Date.now();
+          lsSave();
+        });
+      }
+      if(store.dirty){
+        /* 手元の方が新しい（前回の保存が届いていない）→ 手元を押し上げる */
+        return apiPut('/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
+          store.dirty = false;
+          lsSave();
+        });
+      }
+      if(Math.round(bank.balance) !== Math.round(store.balance)){
+        /* 読み込みを待つ間に賭けた／戻した → 手元の数字を正とする */
+        store.balance = Math.round(bank.balance);
+        store.dirty = true;
+        return apiPut('/player.json', { balance: store.balance, updatedAt: Date.now() }).then(function(){
+          store.dirty = false;
+          lsSave();
+        });
+      }
+      bank.balance = remote;
+      store.balance = remote;
+      store.updatedAt = p.updatedAt || 0;
+      syncWallet();
+      lsSave();
+    });
+  }
+
+  function pullHistory(){
+    return apiGet('/history.json?orderBy=%22%24key%22&limitToLast=100').then(function(o){
+      var list = [], k;
+      if(o && typeof o === 'object'){
+        for(k in o){
+          if(!Object.prototype.hasOwnProperty.call(o, k)) continue;
+          var e = o[k];
+          if(e && typeof e === 'object'){ e._key = k; list.push(e); }
+        }
+      }
+      list.sort(function(a, b){ return (b.ts || 0) - (a.ts || 0); });
+      var seen = {};
+      for(var i = 0; i < list.length; i++) seen[histKey(list[i])] = 1;
+      var pending = store.pending.filter(function(e){ return !seen[histKey(e)]; });
+      var merged = list.concat(pending);
+      merged.sort(function(a, b){ return (b.ts || 0) - (a.ts || 0); });
+      store.history = merged.slice(0, HIST_MAX);
+      lsSave();
+      renderHistoryIfOpen();
+    });
+  }
+
+  /* records that could not be posted yet, one at a time */
+  function flushHistory(){
+    if(!store.pending.length) return;
+    var list = store.pending.slice(), i = 0;
+    (function next(){
+      if(i >= list.length) return;
+      var e = list[i++];
+      apiPost('/history.json', e).then(function(res){
+        if(res && res.name) e._key = res.name;
+        var k = store.pending.indexOf(e);
+        if(k >= 0) store.pending.splice(k, 1);
+        lsSave();
+        next();
+      }).catch(function(){ /* still offline; the copy stays in localStorage */ });
+    })();
+  }
+
+  function bootStore(){
+    var local = lsLoad();
+    if(local){
+      if(isFinite(local.balance)){
+        bank.balance = Math.round(local.balance);
+        store.balance = bank.balance;
+        store.updatedAt = local.updatedAt || 0;
+      }
+      if(local.history && local.history.length) store.history = local.history.slice(0, HIST_MAX);
+      if(local.pending && local.pending.length) store.pending = local.pending.slice();
+      store.dirty = !!local.dirty;
+      syncWallet();
+      renderHistoryIfOpen();
+    }
+    setSync('loading');
+    var failed = 0;
+    var a = pullPlayer(local).catch(function(){ failed++; });
+    var b = pullHistory().catch(function(){ failed++; });
+    Promise.all([a, b]).then(function(){
+      store.loaded = true;
+      settleSyncState(failed);
+      if(!failed){
+        flushHistory();
+        if(store.dirty) saveBalance();
+      }
+    });
+    /* 電波が戻ったら、行き場のなかった記録と残高を送り直す */
+    window.addEventListener('online', function(){
+      if(store.dirty) saveBalance();
+      flushHistory();
+      if(syncState === 'offline') setSync(store.pending.length || store.dirty ? 'saving' : 'saved');
+    });
+  }
+
+  /* 「最新を再読込」— read the book again and push anything still waiting */
+  function reloadFromDB(opts){
+    opts = opts || {};
+    var failed = 0;
+    setSync('loading');
+    flushHistory();
+    var a = pullPlayer(null).catch(function(){ failed++; });
+    var b = pullHistory().catch(function(){ failed++; });
+    return Promise.all([a, b]).then(function(){
+      settleSyncState(failed);
+      renderHistory();
+      if(store.dirty) saveBalance();
+      if(!opts.quiet){
+        toast(failed ? 'データベースに繋がらないみたい。手元の記録を出してるよ'
+                     : '最新の記録を読み込んだよ');
+      }
+      return !failed;
+    });
+  }
+
+  /* --- the history sheet --- */
+  var histOpen = false;
+  var resetArmedAt = 0;
+  var resetTimer = null;
+
+  function hm(ts){
+    var d = new Date(ts || 0);
+    function p2(n){ return (n < 10 ? '0' : '') + n; }
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+  function signed(n){
+    n = Math.round(n || 0);
+    return (n > 0 ? '+' : (n < 0 ? '-' : '±')) + fmt(Math.abs(n));
+  }
+  function netCls(n){ return n > 0 ? 'up' : (n < 0 ? 'down' : 'flat'); }
+
+  function histSummary(){
+    var bets = 0, wins = 0, decided = 0, net = 0, adj = 0;
+    for(var i = 0; i < store.history.length; i++){
+      var e = store.history[i];
+      if(e.type === 'adjust'){ adj += (e.delta || 0); continue; }
+      bets++;
+      net += (e.net || 0);
+      if((e.net || 0) > 0) wins++;
+      if((e.net || 0) !== 0) decided++;      /* 引き分け（タイで押し戻された局）は勝率の分母から外す */
+    }
+    return { balance: Math.round(bank.balance), hands: bets, wins: wins, decided: decided,
+             winRate: decided ? Math.round(wins / decided * 100) : null, net: net, adj: adj };
+  }
+
+  var SPOT_NAME = { P:'P', B:'B', T:'TIE', PP:'P PAIR', BP:'B PAIR' };
+
+  function histItem(e){
+    var div = document.createElement('div');
+    div.className = 'hx-it' + (e.type === 'adjust' ? ' adj' : '');
+
+    if(e.type === 'adjust'){
+      var d = e.delta || 0;
+      div.innerHTML =
+        '<div class="hx-r">' +
+          '<span class="hx-res adj">調整</span>' +
+          '<span class="hx-meta">' + hm(e.ts) + ' · ' + (e.label || '残高の変更') + '</span>' +
+          '<span class="hx-net ' + netCls(d) + '">' + signed(d) + '</span>' +
+        '</div>' +
+        '<div class="hx-r hx-r2">' +
+          '<span class="hx-bets">マスター</span>' +
+          '<span class="hx-bal">残高 ¥' + fmt(e.balanceAfter || 0) + '</span>' +
+        '</div>';
+      return div;
+    }
+
+    var w = e.winner || '?';
+    var side = w === 'P' ? 'p' : (w === 'B' ? 'b' : 't');
+    var pairs = (e.pPair ? 'P PAIR ' : '') + (e.bPair ? 'B PAIR' : '');
+    var bets = [], keys = ['P','B','T','PP','BP'], k;
+    for(k = 0; k < keys.length; k++){
+      var amt = e.bets ? e.bets[keys[k]] : 0;
+      if(amt) bets.push(SPOT_NAME[keys[k]] + ' ' + fmt(amt));
+    }
+    div.innerHTML =
+      '<div class="hx-r">' +
+        '<span class="hx-res ' + side + '">' + (w === 'T' ? 'TIE' : w) + '</span>' +
+        '<span class="hx-sc">' + (e.pScore == null ? '-' : e.pScore) + ':' + (e.bScore == null ? '-' : e.bScore) + '</span>' +
+        (pairs ? '<span class="hx-pr">' + pairs.replace(/\s+$/, '') + '</span>' : '') +
+        '<span class="hx-net ' + netCls(e.net) + '">' + signed(e.net) + '</span>' +
+      '</div>' +
+      '<div class="hx-r">' +
+        '<span class="hx-meta">' + hm(e.ts) + ' · ' + (e.tableName || ('TABLE ' + e.tableId)) +
+          ' · シュー#' + (e.shoe || 1) + ' · ' + (e.handNo || 0) + '番</span>' +
+      '</div>' +
+      '<div class="hx-r hx-r2">' +
+        '<span class="hx-bets">' + (bets.length ? bets.join(' / ') : 'ベットなし') + '</span>' +
+        '<span class="hx-bal">残高 ¥' + fmt(e.balanceAfter || 0) + '</span>' +
+      '</div>';
+    return div;
+  }
+
+  function renderHistory(){
+    if(!UI.histList) return;
+    var s = histSummary();
+    UI.histSum.innerHTML =
+      '<div><small>現在残高</small><b>¥' + fmt(s.balance) + '</b></div>' +
+      '<div><small>プレイ</small><b>' + s.hands + '局</b></div>' +
+      '<div><small>勝率</small><b>' + (s.winRate === null ? '–' : s.winRate + '%') + '</b></div>' +
+      '<div><small>累計収支</small><b class="' + netCls(s.net) + '">' + (s.hands ? signed(s.net) : '±0') + '</b></div>';
+
+    UI.histList.innerHTML = '';
+    if(!store.history.length){
+      var empty = document.createElement('div');
+      empty.className = 'hx-empty';
+      empty.innerHTML = 'まだ記録がないよ。<br>ベットした局が決着すると、ここに残る。';
+      UI.histList.appendChild(empty);
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    for(var i = 0; i < store.history.length; i++) frag.appendChild(histItem(store.history[i]));
+    UI.histList.appendChild(frag);
+  }
+
+  function openHistory(){
+    renderHistory();
+    UI.hist.classList.add('open');
+    UI.hist.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hist-open');
+    histOpen = true;
+    reloadFromDB({ quiet: true });
+  }
+
+  function closeHistory(){
+    UI.hist.classList.remove('open');
+    UI.hist.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('hist-open');
+    histOpen = false;
+    disArmReset();
+  }
+
+  function historyIsOpen(){ return !!UI.hist && UI.hist.classList.contains('open'); }
+
+  function disArmReset(){
+    resetArmedAt = 0;
+    clearTimeout(resetTimer);
+    if(UI.histReset){
+      UI.histReset.classList.remove('armed');
+      UI.histReset.textContent = '履歴をリセット';
+    }
+  }
+
+  /* two taps: the first asks, the second does it */
+  function armHistoryReset(){
+    var btn = UI.histReset;
+    if(resetArmedAt && (Date.now() - resetArmedAt) < 4000){
+      clearHistory();
+      return;
+    }
+    resetArmedAt = Date.now();
+    btn.classList.add('armed');
+    btn.textContent = 'もう一度タップで消去';
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(disArmReset, 4000);
+  }
+
+  function clearHistory(){
+    disArmReset();
+    store.history = [];
+    store.pending = [];
+    lsSave();
+    renderHistory();
+    setSync('saving');
+    apiDelete('/history.json').then(function(){
+      settleSyncState(0);
+      toast('履歴を消したよ');
+    }).catch(function(){
+      setSync('offline');
+      toast('消せなかった…電波を確認してね');
+    });
+  }
+
+  /* =========================================================
      Table
      ========================================================= */
   function Table(idx, dealer){
@@ -1641,6 +2197,8 @@
     this.settled = true;
     this.dirty = true;
     syncWallet();
+    /* money that moved goes into the book — a hand nobody bet on is left out */
+    if(staked) recordBetResult(this, h, b, ret);
     if(state.currentTable === this){ showBanner(this.lastResult); playCall(h.result); }
   };
 
@@ -1840,6 +2398,12 @@
     UI.mInput = $('m-input');
     UI.mTarget = $('m-target');
     UI.mBetSeg = $('m-betseg');
+    UI.hist = $('hist');
+    UI.histSum = $('hist-sum');
+    UI.histList = $('hist-list');
+    UI.histReload = $('hist-reload');
+    UI.histReset = $('hist-reset');
+    UI.histClose = $('hist-close');
   }
 
   var toastTimer = null;
@@ -2320,6 +2884,9 @@
   /* =========================================================
      betting
      ========================================================= */
+  /* 賭けたチップは決着するまで保存しない。この頁を閉じたりリロードしたら、
+     その局は無かったことになり、保存済みの残高に戻る（途中で消えたチップで
+     残高が減り続けることがない）。決着した瞬間に残高と履歴を保存する。 */
   function placeBet(spot, amount){
     var t = state.currentTable;
     if(!t) return;
@@ -2380,6 +2947,7 @@
     bank.balance += 100000;
     syncWallet();
     toast('チップを補充したよ +100,000');
+    recordAdjust('チップ補充', 100000);
   }
 
   /* =========================================================
@@ -2397,20 +2965,25 @@
     return isFinite(n) ? n : null;
   }
 
-  function masterSetBalance(v, silent){
+  function masterSetBalance(v, silent, label){
     v = Math.round(v);
     if(!isFinite(v) || v < 0){ toast('金額が正しくないよ'); return false; }
     if(v > MASTER_MAX){ toast('大きすぎるよ'); return false; }
+    var before = bank.balance;
     bank.balance = v;
     syncWallet();
     masterSync();
     if(!silent) toast('残高を ¥' + fmt(v) + ' にしたよ');
+    if(v !== before){
+      recordAdjust(label || '残高を指定額に設定', v - before);
+    }
     return true;
   }
 
-  function masterAddBalance(d){
+  function masterAddBalance(d, label){
     if(!isFinite(d)) return false;
-    return masterSetBalance(bank.balance + d);
+    return masterSetBalance(bank.balance + d, false,
+      label || ((d >= 0 ? '+' : '-') + fmt(Math.abs(d)) + ' 加算'));
   }
 
   function masterApplyInput(){
@@ -2517,6 +3090,12 @@
     $('btn-repeat').addEventListener('click', repeatBets);
     $('btn-clear').addEventListener('click', clearBets);
     $('btn-topup').addEventListener('click', topUp);
+    $('btn-hist-lobby').addEventListener('click', openHistory);
+    $('btn-hist-table').addEventListener('click', openHistory);
+    $('hist-close').addEventListener('click', closeHistory);
+    $('hist-reload').addEventListener('click', function(){ reloadFromDB(); });
+    $('hist-reset').addEventListener('click', armHistoryReset);
+    UI.hist.addEventListener('click', function(e){ if(e.target === UI.hist) closeHistory(); });
 
     Array.prototype.forEach.call(document.querySelectorAll('.tie-toggle'), function(b){
       b.addEventListener('click', function(e){
@@ -2555,6 +3134,7 @@
 
     document.addEventListener('keydown', function(e){
       if(e.key !== 'Escape') return;
+      if(historyIsOpen()){ closeHistory(); return; }
       if(masterIsOpen()){ closeMaster(); return; }
       if(state.currentTable) backToLobby();
     });
@@ -2579,8 +3159,13 @@
 
     Array.prototype.forEach.call($('m-quick').children, function(b){
       b.addEventListener('click', function(){
-        if(b.hasAttribute('data-add')) masterAddBalance(parseInt(b.getAttribute('data-add'), 10));
-        else masterSetBalance(parseInt(b.getAttribute('data-set'), 10));
+        if(b.hasAttribute('data-add')){
+          var d = parseInt(b.getAttribute('data-add'), 10);
+          masterAddBalance(d, 'クイックで ' + (d > 0 ? '+' : '-') + fmt(Math.abs(d)));
+        } else {
+          var v = parseInt(b.getAttribute('data-set'), 10);
+          masterSetBalance(v, false, v === 100000 ? '初期値 10万に戻す' : '残高を 0 にリセット');
+        }
       });
     });
 
@@ -2655,6 +3240,7 @@
     syncTieToggles();
     syncPbToggles();
     syncWallet();
+    bootStore();
     armCall();
     setInterval(loop, 100);
   }
@@ -2710,6 +3296,23 @@
     masterSetBetSeconds: masterSetBetSeconds,
     masterResetShoe: masterResetShoe,
     parseMoney: parseMoney,
+    /* 保存（Firebase Realtime Database + localStorage）の覗き窓 */
+    DB_URL: DB_URL,
+    LS_KEY: LS_KEY,
+    store: store,
+    syncState: function(){ return syncState; },
+    saveBalanceNow: saveBalance,
+    flushHistory: flushHistory,
+    reloadFromDB: reloadFromDB,
+    recordAdjust: recordAdjust,
+    openHistory: openHistory,
+    closeHistory: closeHistory,
+    historyOpen: historyIsOpen,
+    renderHistory: renderHistory,
+    histSummary: histSummary,
+    clearHistory: clearHistory,
+    armHistoryReset: armHistoryReset,
+    lsSave: lsSave,
     chipPile: chipPile,
     flashStage: flashStage,
     playCall: playCall,
