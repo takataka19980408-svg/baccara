@@ -2038,12 +2038,17 @@
     UI.scoreP.className = 'score dim'; UI.scoreB.className = 'score dim';
   }
 
-  /* view state for the hand on screen */
-  var view = { hand:null, opened:{ p:0, b:0 }, built:{ p:0, b:0 } };
+  /* view state for the hand on screen.
+     opened = the cards whose peel has started (the ones being turned),
+     shown  = the cards whose face is fully up (the only ones the total counts).
+     The two are kept apart so the header never answers before the face does. */
+  var view = { hand:null, opened:{ p:0, b:0 }, shown:{ p:0, b:0 }, faceAt:{}, built:{ p:0, b:0 } };
 
   function resetView(t, ms){
     view.hand = t.hand;
     view.opened = { p:0, b:0 };
+    view.shown = { p:0, b:0 };
+    view.faceAt = {};
     view.built = { p:0, b:0 };
     if(t.phase !== PHASE.DEAL || !t.hand){
       [UI.cardsP, UI.cardsB].forEach(function(h){ h.innerHTML = ''; });
@@ -2086,7 +2091,16 @@
           if(silent) node.classList.add('instant');
           node.classList.add('open');
           view.opened[step.s] = step.i + 1;
+          /* when this card's face is finally up — the turn has to finish, not
+             just start, or the number gives the answer away */
+          view.faceAt[step.s + step.i] = silent ? ms : ms + step.dur;
         }
+      }
+
+      /* only now does the card's value join the total */
+      if(view.shown[step.s] === step.i && view.faceAt[step.s + step.i] != null &&
+         ms >= view.faceAt[step.s + step.i]){
+        view.shown[step.s] = step.i + 1;
       }
     }
 
@@ -2239,15 +2253,16 @@
 
   function syncScores(t){
     var d = view;
-    /* the total climbs a card at a time, so you can follow it as it is peeled */
-    if(d.opened.p >= 1 && t.hand){
-      UI.scoreP.textContent = partScore(t.hand.p, d.opened.p);
+    /* the total climbs a card at a time, and a card only counts once its face
+       is showing: face-down cards never add to the number above the hand */
+    if(d.shown.p >= 1 && t.hand){
+      UI.scoreP.textContent = partScore(t.hand.p, d.shown.p);
       UI.scoreP.className = 'score';
     } else {
       UI.scoreP.textContent = '–'; UI.scoreP.className = 'score dim';
     }
-    if(d.opened.b >= 1 && t.hand){
-      UI.scoreB.textContent = partScore(t.hand.b, d.opened.b);
+    if(d.shown.b >= 1 && t.hand){
+      UI.scoreB.textContent = partScore(t.hand.b, d.shown.b);
       UI.scoreB.className = 'score';
     } else {
       UI.scoreB.textContent = '–'; UI.scoreB.className = 'score dim';
