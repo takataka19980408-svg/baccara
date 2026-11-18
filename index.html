@@ -983,12 +983,125 @@
   var RESULT_MS = 3500;          // let the result sit on the felt before the next window
   var MIN_SHOE = 26;             // last-resort guard: never deal from a shoe this thin
 
-  /* one shoe runs about fifty hands, then the dealer shuffles and a new shoe
-     starts. ~4.9 cards a hand leaves 150–180 cards in the shoe at the cut. */
-  var SHOE_MIN_HANDS = 48;
-  var SHOE_MAX_HANDS = 53;
-  function shoeTargetHands(){
-    return SHOE_MIN_HANDS + Math.floor(Math.random() * (SHOE_MAX_HANDS - SHOE_MIN_HANDS + 1));
+  /* =========================================================
+     the world clock — every table runs on wall-clock time
+     No timer of ours decides when a hand happens: the hand on the felt is
+     a pure function of `Date.now()`. A fixed epoch, one fixed slot per
+     hand and a per-table offset are enough to name the hand that is being
+     played at any instant; a seeded 8-deck shoe supplies its cards and the
+     hands before it on the board. So a phone that was closed for an hour
+     opens on the hand the table has reached while it was away, and two
+     phones looking at the same table at the same minute see the same shoe,
+     the same hand and the same road — nothing has to be shared to agree.
+     ========================================================= */
+  var LIVE_EPOCH = Date.UTC(2026, 0, 1, 0, 0, 0);   // 決まった過去の時刻（全端末で同じ）
+  var SHOE_HANDS = 60;           // 8デック: 1シューは60番まで
+  var SLOT_BET_MS = 20000;       // 世界時間の受付は20秒（マスタの短縮はこの端末だけ）
+  var SLOT_MS = 34000;           // 1局 = 受付20秒 + 配札〜決着（最長10.7秒）+ 余韻3.3秒以上
+  var SHOE_MS = SHOE_HANDS * SLOT_MS;   // 60局 = 34分で1シュー
+
+  /* where each table stands in its own shoe: a whole number of hands apart
+     (so the roads differ) plus a slice of the hand that is spread evenly
+     over the 34 seconds (so at any instant some desk is taking bets, one is
+     dealing and one is paying out). */
+  var PHASE_SLICE = Math.round(SLOT_MS / 6);      // 5667ms
+  var LIVE_SEED = [0, 7, 13, 21, 33, 47].map(function(hand, i){
+    return i * SHOE_MS + hand * SLOT_MS + i * PHASE_SLICE;
+  });
+
+  var clockSkew = 0;             // test hook: pretend the wall clock is elsewhere
+  function worldNow(){ return Date.now() + clockSkew; }
+  function setWorldClock(ms){ clockSkew = (ms == null ? 0 : (ms - Date.now())); }
+  /* a world instant, on the clock the screen and the animations run on */
+  function w2l(w){ return now() + (w - worldNow()); }
+
+  /* which shoe and which hand a table is on at a given instant */
+  function worldPos(t, w){
+    var local = w + t.shift;
+    var shoeIdx = Math.floor(local / SHOE_MS);
+    var within = local - shoeIdx * SHOE_MS;
+    var handIdx = Math.floor(within / SLOT_MS);
+    return { shoeIdx: shoeIdx, handIdx: handIdx, within: within,
+             startWorld: w - (within - handIdx * SLOT_MS) };
+  }
+
+  /* the shoe number written on the table (shared by everyone, 1..500, and
+     counted from #1 again on a desk where the master reset the shoe) */
+  function shoeNumber(t, shoeIdx){
+    if(t.shoeBaseIdx != null) return Math.max(1, 1 + (shoeIdx - t.shoeBaseIdx));
+    return ((shoeIdx % 500) + 500) % 500 + 1;
+  }
+
+  /* a small, fast, seeded generator: the same table and shoe always deal
+     the same cards, on every phone */
+  function mulberry32(a){
+    return function(){
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function seedOf(id, shoeIdx){
+    var s = 'baccara|' + id + '|' + shoeIdx, h = 2166136261 >>> 0;
+    for(var i = 0; i < s.length; i++){
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  /* 60 hands out of one seeded 8-deck shoe (cached: it is asked for a lot) */
+  var planCache = {}, planCacheKeys = [];
+  function shoePlan(id, shoeIdx){
+    var key = id + ':' + shoeIdx;
+    if(planCache[key]) return planCache[key];
+    var deck = makeDeck(), rnd = mulberry32(seedOf(id, shoeIdx)), i, j, tmp;
+    for(i = deck.length - 1; i > 0; i--){
+      j = Math.floor(rnd() * (i + 1));
+      tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+    }
+    var shoe = new Shoe(deck.slice()), hands = [], used = 0;
+    for(i = 0; i < SHOE_HANDS; i++){
+      var h = dealHand(shoe);
+      hands.push(h);
+      used += h.p.length + h.b.length;
+    }
+    var plan = { hands: hands, deck: deck, used: used };
+    planCache[key] = plan;
+    planCacheKeys.push(key);
+    while(planCacheKeys.length > 40){ delete planCache[planCacheKeys.shift()]; }
+    return plan;
+  }
+
+  function handSpan(h){
+    return planSettle(dealPlan(h)) + (h.natural ? 900 : 360);
+  }
+  function resultCells(hands, n){
+    var out = [];
+    for(var i = 0; i < n && i < hands.length; i++){
+      out.push({ r: hands[i].result, p1: hands[i].pPair, p2: hands[i].bPair });
+    }
+    return out;
+  }
+
+  /* what a table looks like at an instant, without touching the screen */
+  function worldStateAt(t, w){
+    var pos = worldPos(t, w);
+    var plan = shoePlan(t.id, pos.shoeIdx);
+    var h = plan.hands[pos.handIdx];
+    var within = w - pos.startWorld;
+    var span = handSpan(h);
+    var out = {
+      shoeIdx: pos.shoeIdx, shoeNo: shoeNumber(t, pos.shoeIdx),
+      handIdx: pos.handIdx, handNo: pos.handIdx + 1, within: within,
+      phase: within < BET_MS ? PHASE.BET : PHASE.DEAL,
+      settled: within >= BET_MS + span,
+      dealt: pos.handIdx + (within < BET_MS ? 0 : 1),
+      results: resultCells(plan.hands, pos.handIdx + (within >= BET_MS + span ? 1 : 0)),
+      result: h.result, cards: [h.p.length, h.b.length], natural: !!h.natural
+    };
+    return out;
   }
 
   /* the deal runs on one clock: cards are dealt face down first, then turned
@@ -1611,10 +1724,55 @@
      of the record the moment a hand you bet on is settled. localStorage
      keeps the same numbers so the screen opens instantly and the game
      still works with no network at all (the next save catches up).
+
+     Everyone gets their own corner of the database: the first time a
+     browser opens the page it invents a player id and keeps it in
+     localStorage, so a URL passed to a friend can never show or mix with
+     your balance and history. `?p=<id>` overrides it (to look at the same
+     player from another device without writing over this device's id).
      ========================================================= */
   var DB_URL = 'https://baccarat-lobby-default-rtdb.firebaseio.com/baccara';
-  var LS_KEY = 'bac.v1';        // this device's copy of the same numbers
+  var PID_KEY = 'bac.pid.v1';    // this browser's player id
+  var LEGACY_LS = 'bac.v1';      // 端末ごとに分ける前の保存先（引き継ぎ用）
   var HIST_MAX = 200;
+
+  function validPid(s){ return !!s && /^[A-Za-z0-9_-]{1,40}$/.test(s); }
+
+  function urlPid(){
+    try {
+      var m = /[?&]p=([^&#]*)/.exec(window.location.search || '');
+      if(!m) return '';
+      var v = decodeURIComponent(m[1]);
+      return validPid(v) ? v : '';
+    } catch(e){ return ''; }
+  }
+
+  function makePid(){
+    var out = '';
+    try {
+      var a = new Uint32Array(3);
+      window.crypto.getRandomValues(a);
+      for(var i = 0; i < a.length; i++) out += a[i].toString(36);
+    } catch(e){
+      for(var j = 0; j < 3; j++) out += Math.floor(Math.random() * 0x100000000).toString(36);
+    }
+    out = out.replace(/[^a-z0-9]/g, '');
+    return 'p_' + out.slice(0, 14);
+  }
+
+  var playerId = (function(){
+    var fromUrl = urlPid();
+    if(fromUrl) return fromUrl;
+    var saved = '';
+    try { saved = window.localStorage.getItem(PID_KEY) || ''; } catch(e){}
+    if(validPid(saved)) return saved;
+    var made = makePid();
+    try { window.localStorage.setItem(PID_KEY, made); } catch(e){}
+    return made;
+  })();
+
+  var ME = '/players/' + playerId;          // this player's corner of the database
+  var LS_KEY = LEGACY_LS + '.' + playerId;  // this device's copy of the same numbers
 
   var store = {
     balance: 100000,
@@ -1649,6 +1807,29 @@
       if(!raw) return null;
       var o = JSON.parse(raw);
       return (o && typeof o === 'object') ? o : null;
+    } catch(e){ return null; }
+  }
+
+  /* 端末ごとに分ける前の控えが残っている端末（＝この人が遊んできた端末）は、
+     残高と履歴をそのままこの playerId の台帳へ引き継ぐ。履歴は未送信として
+     持たせておくので、このあと落ち着いて新しい保存先へ送られる。 */
+  function adoptLegacy(){
+    if(!LS_OK) return null;
+    try {
+      var raw = window.localStorage.getItem(LEGACY_LS);
+      if(!raw) return null;
+      var o = JSON.parse(raw);
+      if(!o || typeof o !== 'object') return null;
+      var hist = (o.history || []).map(function(e){
+        var c = {};
+        for(var k in e) if(Object.prototype.hasOwnProperty.call(e, k) && k !== '_key') c[k] = e[k];
+        return c;
+      });
+      var out = { balance: isFinite(o.balance) ? Math.round(o.balance) : null,
+                  updatedAt: o.updatedAt || 0, dirty: true,
+                  history: hist, pending: hist.slice() };
+      window.localStorage.setItem(LS_KEY, JSON.stringify(out));
+      return out;
     } catch(e){ return null; }
   }
 
@@ -1706,7 +1887,7 @@
     store.balance = Math.round(bank.balance);
     lsSave();
     setSync('saving');
-    apiPut('/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
+    apiPut(ME + '/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
       store.dirty = false;
       store.updatedAt = Date.now();
       lsSave();
@@ -1719,7 +1900,7 @@
   /* --- one record --- */
   function sendHistory(entry){
     setSync('saving');
-    apiPost('/history.json', entry).then(function(res){
+    apiPost(ME + '/history.json', entry).then(function(res){
       if(res && res.name) entry._key = res.name;
       var i = store.pending.indexOf(entry);
       if(i >= 0) store.pending.splice(i, 1);
@@ -1769,20 +1950,20 @@
 
   /* --- opening the page --- */
   function pullPlayer(local){
-    return apiGet('/player.json').then(function(p){
+    return apiGet(ME + '/player.json').then(function(p){
       var remote = (p && typeof p === 'object' && isFinite(p.balance)) ? Math.round(p.balance) : null;
       var hasLocal = !!(local && isFinite(local.balance));
       if(remote === null){
         /* 初回：空の台帳に初期値を置く（手元に残高があるならそれを持ち上げる） */
         var seed = hasLocal ? Math.round(local.balance) : Math.round(bank.balance);
-        return apiPut('/player.json', { balance: seed, updatedAt: Date.now() }).then(function(){
+        return apiPut(ME + '/player.json', { balance: seed, updatedAt: Date.now() }).then(function(){
           store.updatedAt = Date.now();
           lsSave();
         });
       }
       if(store.dirty){
         /* 手元の方が新しい（前回の保存が届いていない）→ 手元を押し上げる */
-        return apiPut('/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
+        return apiPut(ME + '/player.json', { balance: Math.round(bank.balance), updatedAt: Date.now() }).then(function(){
           store.dirty = false;
           lsSave();
         });
@@ -1791,7 +1972,7 @@
         /* 読み込みを待つ間に賭けた／戻した → 手元の数字を正とする */
         store.balance = Math.round(bank.balance);
         store.dirty = true;
-        return apiPut('/player.json', { balance: store.balance, updatedAt: Date.now() }).then(function(){
+        return apiPut(ME + '/player.json', { balance: store.balance, updatedAt: Date.now() }).then(function(){
           store.dirty = false;
           lsSave();
         });
@@ -1805,7 +1986,7 @@
   }
 
   function pullHistory(){
-    return apiGet('/history.json?orderBy=%22%24key%22&limitToLast=100').then(function(o){
+    return apiGet(ME + '/history.json?orderBy=%22%24key%22&limitToLast=100').then(function(o){
       var list = [], k;
       if(o && typeof o === 'object'){
         for(k in o){
@@ -1833,7 +2014,7 @@
     (function next(){
       if(i >= list.length) return;
       var e = list[i++];
-      apiPost('/history.json', e).then(function(res){
+      apiPost(ME + '/history.json', e).then(function(res){
         if(res && res.name) e._key = res.name;
         var k = store.pending.indexOf(e);
         if(k >= 0) store.pending.splice(k, 1);
@@ -1845,6 +2026,7 @@
 
   function bootStore(){
     var local = lsLoad();
+    if(!local) local = adoptLegacy();
     if(local){
       if(isFinite(local.balance)){
         bank.balance = Math.round(local.balance);
@@ -2045,7 +2227,7 @@
     lsSave();
     renderHistory();
     setSync('saving');
-    apiDelete('/history.json').then(function(){
+    apiDelete(ME + '/history.json').then(function(){
       settleSyncState(0);
       toast('履歴を消したよ');
     }).catch(function(){
@@ -2061,10 +2243,20 @@
     this.idx = idx;
     this.id = idx + 1;
     this.dealer = dealer;
+    /* this desk's place on the world clock (the master can move it) */
+    this.shift = LIVE_SEED[idx] || 0;
+    this.shoeBaseIdx = null;
+    this.hands = null;                  // the 60 hands of the shoe in play
+    this.shoeIdx = null;
+    this.handIdx = 0;
+    this.worldSynced = false;
+    this.wkey = '';
+    this.pinned = false;                // a table laid out by hand (tests) stays put
+    this.bannerPending = false;
     this.shoe = new Shoe().shuffle();
     this.shoeNo = 1;
     this.dealt = 0;                     // hands dealt from the shoe in play
-    this.target = shoeTargetHands();    // where the cut card sits, in hands
+    this.target = SHOE_HANDS;           // 8デック: 60番までで切り上がる
     this.results = [];
     this.phase = PHASE.BET;
     this.phaseEnd = 0;
@@ -2082,19 +2274,19 @@
     this.seats = 3 + Math.floor(Math.random() * 4);
     this.seatAt = 0;
     this.crowd = { p:0.45, t:0.08, b:0.47 };
-    this.preload();
-    this.startBetting(now());
+    /* nothing is dealt here: init() puts every table on the world clock */
   }
 
   Table.prototype.reshuffle = function(){
     this.shoe = new Shoe().shuffle();
     this.shoeNo += 1;
     this.dealt = 0;
-    this.target = shoeTargetHands();
+    this.target = SHOE_HANDS;
     this.dirty = true;
   };
 
-  /* the shoe is cut at the target hand, so a shoe lasts fifty-something hands */
+  /* the shoe is cut at the 60th hand; a table laid out by hand draws its
+     cards from its own random shoe */
   Table.prototype.drawHand = function(){
     if(this.dealt >= this.target || this.shoe.remaining < MIN_SHOE) this.reshuffle();
     var h = dealHand(this.shoe);
@@ -2102,19 +2294,141 @@
     return h;
   };
 
-  Table.prototype.preload = function(){
-    /* every table opens somewhere else in its shoe: 8–42 hands on the board */
-    var n = 8 + Math.floor(Math.random() * 35);
-    for(var i = 0; i < n; i++){
-      var h = this.drawHand();
-      this.results.push({ r: h.result, p1: h.pPair, p2: h.bPair });
+  /* put the shoe the world clock names on the table */
+  Table.prototype.loadWorldShoe = function(shoeIdx){
+    var plan = shoePlan(this.id, shoeIdx);
+    this.shoeIdx = shoeIdx;
+    this.hands = plan.hands;
+    this.shoeNo = shoeNumber(this, shoeIdx);
+    this.target = SHOE_HANDS;
+    this.results = [];
+    this.lastResult = null;
+    this.handIdx = -1;
+  };
+
+  Table.prototype.setShoeUsed = function(n){
+    if(!this.hands) return;
+    var plan = shoePlan(this.id, this.shoeIdx);
+    this.shoe = new Shoe(plan.deck.slice(0, plan.deck.length - n));
+  };
+
+  /* --- the world clock, applied to this table -------------------------
+     Called on every tick. If the hand on the felt is not the hand the
+     clock names, the table is moved onto it; inside a hand the ordinary
+     tick still runs the betting window, the deal and the result. */
+  Table.prototype.syncWorld = function(w, force){
+    if(this.pinned) return false;
+    var pos = worldPos(this, w);
+    var key = pos.shoeIdx + ':' + pos.handIdx;
+    if(!force && this.worldSynced && key === this.wkey) return false;
+    /* a hand you had money on that has already been played out is settled
+       from the shoe, not lost */
+    if(this.staked > 0) this.closeOpenBets();
+    if(pos.shoeIdx !== this.shoeIdx) this.loadWorldShoe(pos.shoeIdx);
+    this.applyWorld(pos, w);
+    return true;
+  };
+
+  Table.prototype.applyWorld = function(pos, w){
+    var plan = shoePlan(this.id, pos.shoeIdx);
+    var hand = plan.hands[pos.handIdx];
+    var start = w2l(pos.startWorld);          // this hand's window, on the screen clock
+    var within = w - pos.startWorld;
+    var span = handSpan(hand);
+
+    this.handIdx = pos.handIdx;
+    this.dealt = pos.handIdx;
+    this.results = resultCells(plan.hands, pos.handIdx);
+    this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
+    this.staked = 0;
+    this.nextAt = start + SLOT_MS;
+    this.pickCrowd();
+    this.setShoeUsed(0);
+
+    if(within < BET_MS){
+      /* the window is open: the cards are not out yet */
+      this.phase = PHASE.BET;
+      this.phaseEnd = start + BET_MS;
+      this.hand = null;
+      this.pendingHand = hand;
+      this.settleAt = 0;
+      this.settled = true;
+      var prev = this.results.length ? this.results[this.results.length - 1] : null;
+      this.lastResult = prev ? { result: prev.r, pPair: !!prev.p1, bPair: !!prev.p2,
+                                 staked: 0, ret: 0, net: 0 } : null;
+      this.setShoeUsed(pos.handIdx);
+    } else {
+      /* the cards are on the felt (or already turned over) */
+      this.phase = PHASE.DEAL;
+      this.dealStart = start + BET_MS;
+      this.settleAt = this.dealStart + span;
+      this.hand = hand;
+      this.pendingHand = null;
+      this.dealt = pos.handIdx + 1;
+      this.setShoeUsed(this.usedTo(pos.handIdx));
+      if(within >= BET_MS + span){
+        this.settled = true;
+        this.results = resultCells(plan.hands, pos.handIdx + 1);
+        this.lastResult = { result: hand.result, pPair: hand.pPair, bPair: hand.bPair,
+                            natural: !!hand.natural,
+                            third: (hand.p.length > 2 || hand.b.length > 2),
+                            staked: 0, ret: 0, net: 0 };
+        this.bannerPending = true;
+      } else {
+        this.settled = false;
+        var pv = this.results.length ? this.results[this.results.length - 1] : null;
+        this.lastResult = pv ? { result: pv.r, pPair: !!pv.p1, bPair: !!pv.p2,
+                                 staked: 0, ret: 0, net: 0 } : null;
+      }
+    }
+    this.worldSynced = true;
+    this.wkey = pos.shoeIdx + ':' + pos.handIdx;
+    this.dirty = true;
+  };
+
+  Table.prototype.usedTo = function(handIdx){    var n = 0;
+    for(var i = 0; i <= handIdx && this.hands && i < this.hands.length; i++){
+      n += this.hands[i].p.length + this.hands[i].b.length;
+    }
+    return n;
+  };
+
+  /* the wall clock itself moved (NTP, a manual change, a long pause): the
+     table's deadlines have to move with it, or the hand would sit on stale
+     seconds. Bets already on the felt stay where they are. */
+  Table.prototype.shiftClock = function(d){
+    if(!d) return;
+    if(this.phaseEnd > 0) this.phaseEnd += d;
+    if(this.dealStart > 0) this.dealStart += d;
+    if(this.settleAt > 0) this.settleAt += d;
+    if(this.nextAt > 0) this.nextAt += d;
+    if(this.seatAt > 0) this.seatAt += d;
+  };
+
+  /* 席を立つ前に張ったチップが、時刻の飛びで置き去りにならないように */
+  Table.prototype.closeOpenBets = function(){
+    if(!this.staked) return;
+    var h = this.hand || this.pendingHand ||
+            (this.hands ? this.hands[this.handIdx] : null);
+    if(h){
+      this.hand = h;
+      this.dealt = Math.max(this.dealt, this.handIdx + 1);
+      this.settled = false;
+      this.settle();
+    } else {
+      bank.balance += this.staked;
+      this.staked = 0;
+      this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
+      syncWallet();
     }
   };
 
-  Table.prototype.startBetting = function(t){
+  Table.prototype.startBetting = function(t, internal){
+    if(!internal) this.pinned = true;      // 手で動かした卓は世界時間から切り離す
     this.phase = PHASE.BET;
     this.phaseEnd = t + BET_MS;
     this.hand = null;
+    this.pendingHand = null;
     this.settled = true;
     this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
     this.staked = 0;
@@ -2148,15 +2462,26 @@
     this.dirty = true;
   };
 
-  Table.prototype.startDeal = function(t){
-    this.hand = this.drawHand();
+  Table.prototype.startDeal = function(t, internal){
+    if(!internal) this.pinned = true;
+    if(this.pendingHand){
+      /* the hand the world clock already chose for this window */
+      this.hand = this.pendingHand;
+      this.pendingHand = null;
+      this.dealt += 1;
+      this.setShoeUsed(this.usedTo(this.handIdx));
+    } else {
+      this.hand = this.drawHand();
+    }
     var plan = dealPlan(this.hand);
     var lastFlip = planSettle(plan);
     this.phase = PHASE.DEAL;
     this.dealStart = t;
     /* a natural gets a beat longer so the dealer can call it */
     this.settleAt = t + lastFlip + (this.hand.natural ? 900 : 360);
-    this.nextAt = this.settleAt + RESULT_MS;    // then the next betting window
+    /* a table on the world clock waits for the next window to be opened by
+       the clock itself; one laid out by hand runs on its own */
+    if(this.pinned) this.nextAt = this.settleAt + RESULT_MS;
     this.settled = false;
     this.dirty = true;
   };
@@ -2164,10 +2489,10 @@
   Table.prototype.tick = function(t){
     this.seatDrift(t);
     if(this.phase === PHASE.BET){
-      if(t >= this.phaseEnd) this.startDeal(t);
+      if(t >= this.phaseEnd) this.startDeal(t, true);
     } else {
       if(!this.settled && t >= this.settleAt) this.settle();
-      if(t >= this.nextAt) this.startBetting(t);
+      if(this.pinned && t >= this.nextAt) this.startBetting(t, true);
     }
   };
 
@@ -2633,17 +2958,20 @@
         else flyFromShoe(el);
       }
 
-      /* ... then it is turned over between the dealer's fingers */
+      /* ... then it is turned over between the dealer's fingers.
+         A card whose turn is already well in the past (the page was away, or
+         the clock moved) is simply lying face up: no animation to catch up on. */
       if(view.built[step.s] > step.i && elapsed >= step.at && view.opened[step.s] <= step.i){
         var node = host.children[step.i];
         if(node && !node.classList.contains('open')){
+          var late = (ms - (t.dealStart + step.at)) > 600;
           if(step.pace) node.classList.add(step.pace);
-          if(silent) node.classList.add('instant');
+          if(silent || late) node.classList.add('instant');
           node.classList.add('open');
           view.opened[step.s] = step.i + 1;
           /* when this card's face is finally up — the turn has to finish, not
              just start, or the number gives the answer away */
-          view.faceAt[step.s + step.i] = silent ? ms : ms + step.dur;
+          view.faceAt[step.s + step.i] = (silent || late) ? ms : ms + step.dur;
         }
       }
 
@@ -2876,6 +3204,12 @@
       syncScores(t);
       if(!UI.banner.classList.contains('hidden')) UI.prevRes.classList.add('hidden');
       if(!t.settled && !UI.banner.classList.contains('hidden')) hideBanner();
+      /* the world clock may have carried the table over this hand while the
+         page was away: the result goes up as if you had watched it */
+      if(t.settled && t.bannerPending){
+        t.bannerPending = false;
+        if(t.lastResult) showBanner(t.lastResult);
+      }
     }
 
     if(t.dirty) renderRoad(t);
@@ -2992,26 +3326,64 @@
     return masterSetBalance(v);
   }
 
-  /* the betting window every table runs on */
+  /* the betting window every table runs on.
+     It can only be shortened: the deal has to start inside the hand's slot
+     (20秒), or this phone would drift away from everyone else's table. */
   function masterSetBetSeconds(sec){
     sec = Math.round(sec);
     if(!(sec >= 3 && sec <= 60)) return false;
-    BET_MS = sec * 1000;
-    state.betSeconds = sec;
+    BET_MS = Math.min(sec * 1000, SLOT_BET_MS);
+    state.betSeconds = Math.round(BET_MS / 1000);
     var t0 = now();
     for(var i = 0; i < tables.length; i++){
       var t = tables[i];
-      /* a window that is open right now is re-cut to the new length */
-      if(t.phase === PHASE.BET) t.phaseEnd = t0 + BET_MS;
+      /* a window that is open right now is re-cut to the new length.
+         A table laid out by hand follows the setting both ways; a table on
+         the world clock can only close earlier — the deal has its own slot */
+      if(t.phase === PHASE.BET && (t.pinned || t.phaseEnd > t0 + BET_MS)) t.phaseEnd = t0 + BET_MS;
       t.dirty = true;
       if(t.el) updateLobbyCard(t);
     }
     masterSync();
-    toast('ベット受付を ' + sec + '秒にしたよ');
+    toast('ベット受付を ' + Math.round(BET_MS / 1000) + '秒にしたよ');
     return true;
   }
 
-  /* reshuffle the shoe and wipe the big road */
+  /* --- the master's shoe reset, on a clock that runs by itself -----------
+     The shoe is the world clock's, so “reset” moves this desk to the start
+     of the next shoe instead of deleting a timetable: the table shuffles a
+     fresh 60-hand shoe, the road empties, the number counts from #1 again,
+     and from there it runs on the same shared clock as before. The offset
+     lives on this device only (localStorage), so other phones keep the
+     shoe they have. */
+  var LIVE_OFFSET_KEY = 'bac.live.v1';
+
+  function saveLiveOffsets(){
+    try {
+      var out = tables.map(function(t){
+        return [t.shift == null ? LIVE_SEED[t.idx] : t.shift,
+                t.shoeBaseIdx == null ? null : t.shoeBaseIdx];
+      });
+      window.localStorage.setItem(LIVE_OFFSET_KEY, JSON.stringify(out));
+    } catch(e){}
+  }
+
+  function loadLiveOffsets(){
+    try {
+      var raw = window.localStorage.getItem(LIVE_OFFSET_KEY);
+      if(!raw) return;
+      var saved = JSON.parse(raw);
+      if(!saved || !saved.length) return;
+      for(var i = 0; i < tables.length && i < saved.length; i++){
+        var e = saved[i];
+        if(e && isFinite(e[0])){
+          tables[i].shift = e[0];
+          tables[i].shoeBaseIdx = (e[1] == null || !isFinite(e[1])) ? null : e[1];
+        }
+      }
+    } catch(e){}
+  }
+
   function masterResetShoe(target){
     var list = [], i;
     if(target === 'all' || target === undefined || target === null){
@@ -3021,21 +3393,36 @@
       if(!one) return false;
       list = [one];
     }
+    var w = worldNow();
     for(i = 0; i < list.length; i++){
       var t = list[i];
-      t.shoe = new Shoe().shuffle();
-      t.shoeNo = 1;
-      t.dealt = 0;
-      t.target = shoeTargetHands();
+      if(t.staked > 0) t.closeOpenBets();
+      /* stand the desk at the first instant of the next shoe */
+      var local = w + t.shift;
+      var boundary = (Math.floor(local / SHOE_MS) + 1) * SHOE_MS;
+      t.shift = boundary - w;
+      t.shoeBaseIdx = boundary / SHOE_MS;
+      t.pinned = false;
+      t.worldSynced = false;
+      t.wkey = '';
+      t.shoeIdx = null;
+      t.handIdx = -1;
       t.results = [];
       t.lastResult = null;
       t.lastBets = null;
+      t.hand = null;
+      t.pendingHand = null;
+      t.bets = { P:0, B:0, T:0, PP:0, BP:0 };
+      t.staked = 0;
       t.dirty = true;
+      t.syncWorld(w, true);
       if(t.el) updateLobbyCard(t);
     }
-    if(state.currentTable){
-      renderRoad(state.currentTable);
+    saveLiveOffsets();
+    if(state.currentTable && list.indexOf(state.currentTable) >= 0){
+      renderTable();
       UI.prevRes.classList.add('hidden');
+      hideBanner();
     }
     toast(target === 'all'
       ? '全卓のシューを切って大路をリセットしたよ'
@@ -3181,41 +3568,26 @@
   /* =========================================================
      main loop
      ========================================================= */
-  /* Each table is already mid-cycle when the app opens — nobody waits for you.
-     bet: the window is already running   deal: cards are on the felt
-     result: the hand is over, the next window is about to open */
-  var LIVE_SEED = [
-    { kind:'bet',    left: 15600 },
-    { kind:'deal',   elapsed: 2400 },
-    { kind:'bet',    left: 4800 },
-    { kind:'result', left: 2600 },
-    { kind:'bet',    left: 13400 },
-    { kind:'deal',   elapsed: 1100 }
-  ];
-
-  function seedLive(t, spec, t0){
-    if(spec.kind === 'bet'){
-      t.startBetting(t0);
-      t.phaseEnd = t0 + spec.left;
-    } else if(spec.kind === 'deal'){
-      t.startDeal(t0 - spec.elapsed);
-    } else {
-      /* lay the hand down as if it had already been played out, then park it
-         on the result until the next window opens */
-      t.startDeal(t0);
-      var span = (t.settleAt - t0) + 120;
-      t.dealStart = t0 - span;
-      t.settle();
-      t.nextAt = t0 + spec.left;
-    }
-    t.seatAt = t0 + 2500 + Math.random() * 9000;
-  }
+  /* Each table is where the world clock says it is when the page opens —
+     nobody waits for you. bet: the window is already running   deal: cards
+     are on the felt   result: the hand is over, the next window is coming.
+     The six desks stand at six different moments of their own shoe (see
+     LIVE_SEED), so the lobby always has all three to look at. */
+  var lastWorld = 0, lastTick = 0;
 
   function loop(){
-    var t = now();
+    var t = now(), w = worldNow();
+    /* how far the wall clock moved compared with the screen's own clock:
+       a deadline set for "7 seconds from now" on the wall clock has to move
+       by the same amount, or the hand would sit on stale seconds */
+    var drift = (lastWorld && Math.abs((t - lastTick) - (w - lastWorld)) > 200)
+                  ? (t - lastTick) - (w - lastWorld) : 0;
+    lastWorld = w; lastTick = t;
+    if(drift) tables.forEach(function(tb){ tb.shiftClock(drift); });
     for(var i = 0; i < tables.length; i++){
       var tb = tables[i];
       var wasPhase = tb.phase, wasSettled = tb.settled;
+      tb.syncWorld(w);
       tb.tick(t);
       if(tb.phase !== wasPhase || tb.settled !== wasSettled) tb.dirty = true;
     }
@@ -3228,9 +3600,10 @@
 
   function init(){
     cacheDom();
-    var t0 = now();
     for(var i = 0; i < 6; i++) tables.push(new Table(i, DEALERS[i]));
-    tables.forEach(function(t, i){ seedLive(t, LIVE_SEED[i], t0); });
+    loadLiveOffsets();
+    var w0 = worldNow();
+    tables.forEach(function(t){ t.syncWorld(w0, true); });
     buildLobby();
     wire();
     buildMaster();
@@ -3276,6 +3649,10 @@
     PB_MODES: { pb: PB_PB, bp: PB_BP },
     pbMode: function(){ return pbMode; },
     dealPlan: dealPlan,
+    viewState: function(){ return {hand: !!view.hand, opened: {p:view.opened.p, b:view.opened.b},
+                                   shown: {p:view.shown.p, b:view.shown.b},
+                                   built: {p:view.built.p, b:view.built.b},
+                                   faceAt: view.faceAt}; },
     planSettle: planSettle,
     turnPlan: turnPlan,
     layoutCards: layoutCards,
@@ -3297,7 +3674,8 @@
     masterResetShoe: masterResetShoe,
     parseMoney: parseMoney,
     /* 保存（Firebase Realtime Database + localStorage）の覗き窓 */
-    DB_URL: DB_URL,
+    playerId: function(){ return playerId; },
+    playerBase: function(){ return ME; },
     LS_KEY: LS_KEY,
     store: store,
     syncState: function(){ return syncState; },
@@ -3320,8 +3698,22 @@
     CALL_TEXT: CALL_TEXT,
     spoken: function(){ return window.__spoken.slice(); },
     audioReady: function(){ return Object.keys(callBuf).length; },
-    seedLive: seedLive,
+    /* the world clock */
+    worldNow: worldNow,
+    setWorldClock: setWorldClock,
+    worldStateAt: worldStateAt,
+    worldPos: function(i, w){ return worldPos(tables[i], w == null ? worldNow() : w); },
+    syncWorld: function(i, w){ return tables[i].syncWorld(w == null ? worldNow() : w, true); },
+    pin: function(i){ tables[i].pinned = true; return true; },
+    unpin: function(i){ tables[i].pinned = false; tables[i].worldSynced = false; tables[i].wkey = ''; return true; },
     LIVE_SEED: LIVE_SEED,
+    SLOT_MS: SLOT_MS,
+    SLOT_BET_MS: SLOT_BET_MS,
+    SHOE_MS: SHOE_MS,
+    SHOE_HANDS: SHOE_HANDS,
+    LIVE_EPOCH: LIVE_EPOCH,
+    shoePlan: function(i, shoeIdx){ return shoePlan(tables[i].id, shoeIdx); },
+    handSpan: handSpan,
     /* deal the hand that is waiting (used where the old button was) */
     dealNow: function(){
       var tb = state.currentTable;
@@ -3342,6 +3734,7 @@
       var h = dealHand(new Shoe(cards));
       var tb = tables[i];
       var plan = dealPlan(h);
+      tb.pinned = true;               // laid out by hand: the clock leaves it alone
       tb.hand = h;
       tb.phase = PHASE.DEAL;
       tb.dealStart = now() - (opts.elapsed || 0);
