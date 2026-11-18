@@ -217,7 +217,7 @@
   .topup:active{transform:scale(.97)}
 
   /* stage */
-  .stage{position:relative;padding:8px 10px 8px;flex:1 1 auto;display:flex;flex-direction:column;
+  .stage{position:relative;padding:6px 10px 5px;flex:1 1 auto;display:flex;flex-direction:column;
     justify-content:flex-start;gap:6px;overflow:hidden;--dh:160px;
     background:radial-gradient(90% 120% at 50% 0%,rgba(20,72,56,.45),rgba(7,16,14,0) 70%)}
   .stage::before{content:'';position:absolute;left:3%;right:3%;top:8%;bottom:6%;border-radius:50%/42%;
@@ -376,19 +376,24 @@
   .road-panel .road-scroll{flex:0 0 auto;max-height:calc(20px * 6 + 4px)}
 
   /* ---------- roads under the big road ----------
-     大眼仔 ○ / 小路 ● / 甲由路 ／ on the left, 珠盤路 (6目罫線) on the right,
-     the P/B prediction row under both of them.
+     大路 on top, full width, the way it always was. Under it two columns:
+     the three rhythm roads (大眼仔 ○ / 小路 ● / 甲由路 ／) stacked in three
+     rows on the left, and the 珠盤路 (6目罫線) wide on the right so a whole
+     50-hand shoe (6×9) sits on one screen with no side-scroll. The P/B
+     prediction row runs under both of them and is always on screen.
      Red = the rhythm held, blue = it broke — fixed baccarat colours, so the
      P/B palette switch never turns them around. The beads, on the other hand,
-     are the hands themselves, so their circles follow the P/B palette.
-     The prediction row lives inside the panel and no screen height hides it. */
-  .dr-panel{flex:0 0 auto;margin:0 10px 7px;padding:5px 7px 3px;border-radius:12px;
-    background:rgba(5,9,13,.6);border:1px solid #1a2733;--drc:9px;--bc:14px}
-  .rd-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:start}
-  .rd-left{min-width:0;display:flex;flex-direction:column;gap:2px}
-  .dr-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
-  .dr-item{min-width:0}
-  .dr-hd{display:flex;align-items:center;gap:3px;height:10px;margin-bottom:2px;
+     are the hands themselves, so their circles follow the P/B palette. */
+  .dr-panel{flex:0 0 auto;margin:0 10px 7px;padding:5px 7px 4px;border-radius:12px;
+    background:rgba(5,9,13,.6);border:1px solid #1a2733;
+    --bc:15px;                                    /* 珠盤路の1セル */
+    --drc:calc((var(--bc) * 6 - 6px) / 18)}        /* 左の3段が珠盤路と同じ高さに揃う */
+  .rd-top{display:grid;grid-template-columns:minmax(0,47fr) minmax(0,53fr);gap:6px;
+    align-items:stretch}
+  .rd-left{min-width:0;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:3px}
+  .dr-item{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px;
+    align-content:center;align-items:center}
+  .dr-hd{display:flex;align-items:center;gap:3px;
     font-size:8px;font-weight:900;letter-spacing:.02em;color:#7d93a6;line-height:1;white-space:nowrap}
   .dr-hd .dms{opacity:.75}
   .dr-hd .dms{margin-left:1px;width:5px;height:5px}
@@ -410,8 +415,9 @@
   .dms.f{border-radius:50%;background:currentColor}
   .dms.s::before{content:'';position:absolute;left:50%;top:50%;width:100%;height:0;
     border-top:1.4px solid currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
-  /* 珠盤路 — one hand per cell, six hands down then the next column */
-  .beads-item{min-width:0;width:calc(var(--bc) * 6)}
+  /* 珠盤路 — one hand per cell, six hands down then the next column.
+     The box takes the whole right column, so a 6×9 shoe needs no scrolling. */
+  .beads-item{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:2px}
   .beads-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;
     height:calc(var(--bc) * 6);border-radius:4px;background:rgba(255,255,255,.024)}
   .beads-scroll::-webkit-scrollbar{display:none}
@@ -432,7 +438,7 @@
   .bc.p .pm{background:rgb(var(--p-lt-rgb))}
   .bc.b .pm{background:rgb(var(--b-lt-rgb))}
 
-  /* 予測 — next P and next B, one row, always on screen */
+  /* 予測 — next P and next B, one row under the two columns, always on screen */
   .dr-pred{display:flex;align-items:center;gap:6px;padding-top:4px;min-height:17px;
     font-size:9px;color:#7d93a6;font-weight:800;letter-spacing:.06em}
   .dr-pred .dpl{letter-spacing:.14em;color:#9db0c1}
@@ -444,9 +450,9 @@
   .dr-pred .dms{width:7px;height:7px}
 
   /* bet panel */
-  .bet-panel{padding:8px 10px calc(10px + env(safe-area-inset-bottom));
+  .bet-panel{padding:6px 10px calc(6px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg,rgba(11,18,25,.9),rgba(7,11,16,.98));
-    border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:7px}
+    border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px}
   .bet-hd{display:flex;align-items:center;gap:8px}
   .bet-st{display:flex;align-items:baseline;gap:3px;font-size:10.5px;font-weight:800;letter-spacing:.05em;
     color:#9fb2c3;min-width:104px}
@@ -520,14 +526,14 @@
 
   /* the dealer band follows the screen height where clamp() is supported */
   @supports (width:clamp(1px,2vw,3px)){
-    @media (min-height: 821px){ .stage{--dh:clamp(44px, calc(100vh - 722px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 186px)} }
+    @media (min-height: 821px){ .stage{--dh:clamp(44px, calc(100vh - 748px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 186px)} }
   }
 
   /* short screens (iPhone SE, and the small notched phones with their safe areas) */
   @media (max-height: 820px){
     .tbar{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
     .tinfo{padding:4px 13px}
-    .stage{padding:5px 10px 4px;gap:4px;--dh:clamp(52px, calc(100vh - 601px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
+    .stage{padding:5px 10px 4px;gap:4px;--dh:clamp(40px, calc(100vh - 629px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
     .dealer{gap:8px}
     .ds-plate{padding:3px 6px 4px}
     .ds-plate b{font-size:11.5px}
@@ -542,12 +548,12 @@
     .banner .t{font-size:16px}
     .road-panel{margin-bottom:5px;padding:4px 8px 3px}
     .road-panel .road-scroll{max-height:calc(15px * 6 + 2px)}
-    .dr-panel{--drc:7px;--bc:10.5px;padding:4px 6px 2px;margin-bottom:4px}
-    .dr-hd{height:9px;font-size:7.5px;margin-bottom:1px}
+    .dr-panel{--bc:13px;padding:4px 6px 3px;margin-bottom:4px}
+    .dr-hd{font-size:7.5px}
     .dr-pred{padding-top:3px;min-height:15px;font-size:8.5px;gap:5px}
     .dr-pred .dp-side b{font-size:9.5px}
     .dr-pred .dms{width:6.5px;height:6.5px}
-    .bet-panel{gap:5px;padding:5px 10px calc(8px + env(safe-area-inset-bottom))}
+    .bet-panel{gap:4px;padding:4px 10px calc(4px + env(safe-area-inset-bottom))}
     .bet-st{min-width:96px}
     .bet-st b{font-size:14px}
     .spot{min-height:40px;padding:5px 4px 6px}
@@ -558,7 +564,7 @@
   @media (max-height: 640px){
     .lb-sub{display:none}
     /* very short screens: the dealer band borrows whatever height the stage has spare */
-    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(40px, calc(100vh - 516px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
+    .stage{padding:4px 10px 3px;gap:3px;--dh:clamp(20px, calc(100vh - 540px - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 120px)}
     .dealer{gap:7px}
     .ds-plate{padding:3px 5px 4px}
     .ds-plate b{font-size:10.5px}
@@ -575,13 +581,13 @@
     .banner .bx{padding:4px 12px}
     .banner .t{font-size:13px}
     .road-panel .road-scroll{max-height:calc(11px * 6 + 2px)}
-    .dr-panel{--drc:5.5px;--bc:8.5px;padding:3px 6px 1px;margin-bottom:3px}
-    .dr-hd{height:8px;font-size:7px;margin-bottom:1px}
+    .dr-panel{--bc:11px;padding:3px 6px 2px;margin-bottom:3px}
+    .dr-hd{font-size:7px}
     .dr-pred{padding-top:2px;min-height:13px;font-size:8px;gap:4px}
     .dr-pred .dp-side{padding:0 6px 0 4px}
     .dr-pred .dp-side b{font-size:9px}
     .dr-pred .dms{width:6px;height:6px}
-    .bet-panel{gap:4px;padding:4px 10px calc(6px + env(safe-area-inset-bottom))}
+    .bet-panel{gap:4px;padding:5px 10px calc(5px + env(safe-area-inset-bottom))}
     .spot{min-height:37px;padding:4px 3px 5px}
     .spot .od{display:none}
     .chip{height:29px;font-size:10.5px}
@@ -783,32 +789,30 @@
       <div class="road-scroll" id="table-road"></div>
     </div>
 
-    <!-- 大路の下: 左に下罫線3種、右に珠盤路（6目罫線）、その直下に予測行 -->
+    <!-- 大路の下: 左に下罫線3種（縦3段）、右に珠盤路（6目罫線）、その直下に予測行 -->
     <div class="dr-panel" id="derived-panel" role="group"
          aria-label="下罫線 大眼仔・小路・甲由路 と 珠盤路">
       <div class="rd-top">
         <div class="rd-left">
-          <div class="dr-row">
-            <div class="dr-item">
-              <div class="dr-hd"><span>大眼仔</span><i class="dms o"></i></div>
-              <div class="dr-scroll"><div class="dr-grid bigeye" id="dr-bigeye"></div></div>
-            </div>
-            <div class="dr-item">
-              <div class="dr-hd"><span>小路</span><i class="dms f"></i></div>
-              <div class="dr-scroll"><div class="dr-grid small" id="dr-small"></div></div>
-            </div>
-            <div class="dr-item">
-              <div class="dr-hd"><span>甲由路</span><i class="dms s"></i></div>
-              <div class="dr-scroll"><div class="dr-grid cockroach" id="dr-cockroach"></div></div>
-            </div>
+          <div class="dr-item">
+            <div class="dr-hd"><span>大眼仔</span><i class="dms o"></i></div>
+            <div class="dr-scroll"><div class="dr-grid bigeye" id="dr-bigeye"></div></div>
           </div>
-          <div class="dr-pred" id="dr-pred"></div>
+          <div class="dr-item">
+            <div class="dr-hd"><span>小路</span><i class="dms f"></i></div>
+            <div class="dr-scroll"><div class="dr-grid small" id="dr-small"></div></div>
+          </div>
+          <div class="dr-item">
+            <div class="dr-hd"><span>甲由路</span><i class="dms s"></i></div>
+            <div class="dr-scroll"><div class="dr-grid cockroach" id="dr-cockroach"></div></div>
+          </div>
         </div>
         <div class="beads-item">
           <div class="dr-hd"><span>珠盤路</span><span class="bd6">6目</span></div>
           <div class="dr-scroll beads-scroll"><div class="beads-grid" id="beads-road"></div></div>
         </div>
       </div>
+      <div class="dr-pred" id="dr-pred"></div>
     </div>
 
     <div class="bet-panel" id="bet-panel">
@@ -2134,7 +2138,7 @@
   }
 
   function renderRoad(t){
-    var cell = (window.innerHeight <= 640) ? 11 : (window.innerHeight <= 820 ? 15 : 18);
+    var cell = (window.innerHeight <= 640) ? 10 : (window.innerHeight <= 820 ? 13 : 18);
     UI.road.innerHTML = roadHTML(t.results, cell);
     UI.road.scrollLeft = UI.road.scrollWidth;
     renderDerived(t);
