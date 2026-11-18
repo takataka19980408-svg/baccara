@@ -1815,6 +1815,8 @@
      持たせておくので、このあと落ち着いて新しい保存先へ送られる。 */
   function adoptLegacy(){
     if(!LS_OK) return null;
+    /* ?p= で別の台帳を見に来たときは、この端末の控えを持ち込まない */
+    if(urlPid()) return null;
     try {
       var raw = window.localStorage.getItem(LEGACY_LS);
       if(!raw) return null;
