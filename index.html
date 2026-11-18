@@ -986,27 +986,32 @@
   /* =========================================================
      the world clock — every table runs on wall-clock time
      No timer of ours decides when a hand happens: the hand on the felt is
-     a pure function of `Date.now()`. A fixed epoch, one fixed slot per
-     hand and a per-table offset are enough to name the hand that is being
-     played at any instant; a seeded 8-deck shoe supplies its cards and the
-     hands before it on the board. So a phone that was closed for an hour
-     opens on the hand the table has reached while it was away, and two
-     phones looking at the same table at the same minute see the same shoe,
-     the same hand and the same road — nothing has to be shared to agree.
+     a pure function of `Date.now()`. The JST day being played, one fixed
+     slot per hand and a per-table offset are enough to name the shoe and
+     the hand that are being played at any instant; a seeded 8-deck shoe
+     supplies its cards and the hands before it on the board. So a phone
+     that was closed for an hour opens on the hand the table has reached
+     while it was away, and two phones looking at the same table at the
+     same minute see the same shoe, the same hand and the same road —
+     nothing has to be shared to agree. The count starts at #1 each JST
+     midnight, so a shoe never runs over into the next day's numbers.
      ========================================================= */
-  var LIVE_EPOCH = Date.UTC(2026, 0, 1, 0, 0, 0);   // 決まった過去の時刻（全端末で同じ）
+  var LIVE_EPOCH = Date.UTC(2026, 0, 1, 0, 0, 0);   // 決まった過去の時刻（互換用）
+  var JST_MS = 9 * 3600 * 1000;  // 日本時間は UTC+9（夏時間なし）
+  var DAY_MS = 24 * 3600 * 1000;
   var SHOE_HANDS = 60;           // 8デック: 1シューは60番まで
   var SLOT_BET_MS = 20000;       // 世界時間の受付は20秒（マスタの短縮はこの端末だけ）
   var SLOT_MS = 34000;           // 1局 = 受付20秒 + 配札〜決着（最長10.7秒）+ 余韻3.3秒以上
   var SHOE_MS = SHOE_HANDS * SLOT_MS;   // 60局 = 34分で1シュー
+  var SHOES_PER_DAY = 64;        // 1日のシューを詰めるキーの枠（実際は43〜44シュー）
 
-  /* where each table stands in its own shoe: a whole number of hands apart
-     (so the roads differ) plus a slice of the hand that is spread evenly
-     over the 34 seconds (so at any instant some desk is taking bets, one is
-     dealing and one is paying out). */
+  /* where each table stands inside a shoe: a few hands apart (so the roads
+     differ) plus a slice of the hand spread evenly over the 34 seconds (so
+     at any instant some desk is taking bets, one is dealing and one is
+     paying out). A shoe holds 60 hands, so every seed stays below SHOE_MS. */
   var PHASE_SLICE = Math.round(SLOT_MS / 6);      // 5667ms
   var LIVE_SEED = [0, 7, 13, 21, 33, 47].map(function(hand, i){
-    return i * SHOE_MS + hand * SLOT_MS + i * PHASE_SLICE;
+    return hand * SLOT_MS + i * PHASE_SLICE;
   });
 
   var clockSkew = 0;             // test hook: pretend the wall clock is elsewhere
@@ -1015,21 +1020,47 @@
   /* a world instant, on the clock the screen and the animations run on */
   function w2l(w){ return now() + (w - worldNow()); }
 
-  /* which shoe and which hand a table is on at a given instant */
+  /* --- shoes counted one day at a time ---------------------------------
+     The number on the felt is the shoe's place in the JST day that is
+     running: at 00:00 Asia/Tokyo every desk goes back to 「シュー #1」.
+     A day holds 43 or 44 shoes of 34 minutes, and each table keeps its own
+     phase inside the day (a few hands into the day's first shoe), so the
+     six desks still stand at six different moments. */
+  function jstDayAt(w){ return Math.floor((w + JST_MS) / DAY_MS); }
+  function jstDayStart(day){ return day * DAY_MS - JST_MS; }   // その日の 00:00 JST（UTCのミリ秒）
+  function jstDateOf(day){                                     // 'YYYYMMDD'
+    var d = new Date(day * DAY_MS), m = d.getUTCMonth() + 1, dd = d.getUTCDate();
+    return '' + d.getUTCFullYear() + (m < 10 ? '0' : '') + m + (dd < 10 ? '0' : '') + dd;
+  }
+  function dayOfShoe(key){ return Math.floor(key / SHOES_PER_DAY); }
+  function ordOfShoe(key){ return key - dayOfShoe(key) * SHOES_PER_DAY; }
+
+  /* which shoe and which hand a table is on at a given instant.
+     shoeKey names the shoe for good (day × 64 + its place that day), so the
+     seeded cards differ every day even though the number starts at #1
+     again — and two phones at the same minute still see the same board. */
   function worldPos(t, w){
-    var local = w + t.shift;
-    var shoeIdx = Math.floor(local / SHOE_MS);
-    var within = local - shoeIdx * SHOE_MS;
+    var day = jstDayAt(w);
+    var elapsed = w - jstDayStart(day);        // その日の 00:00 からの経過
+    var local = elapsed + t.shoePhase;         // 卓ごとの位相ズレ（この端末だけ）
+    var ord = Math.floor(local / SHOE_MS);     // その日の第何シュー目か（0始まり）
+    var within = local - ord * SHOE_MS;
     var handIdx = Math.floor(within / SLOT_MS);
-    return { shoeIdx: shoeIdx, handIdx: handIdx, within: within,
+    var key = day * SHOES_PER_DAY + ord;
+    return { day: day, shoeKey: key, shoeIdx: key, shoeOrd: ord,
+             handIdx: handIdx, within: within,
+             shoeStart: w - within,
              startWorld: w - (within - handIdx * SLOT_MS) };
   }
 
-  /* the shoe number written on the table (shared by everyone, 1..500, and
-     counted from #1 again on a desk where the master reset the shoe) */
-  function shoeNumber(t, shoeIdx){
-    if(t.shoeBaseIdx != null) return Math.max(1, 1 + (shoeIdx - t.shoeBaseIdx));
-    return ((shoeIdx % 500) + 500) % 500 + 1;
+  /* the shoe number written on the table: the shoe's place in today's count,
+     from #1. Pressing the master's reset starts a fresh shoe numbered #1 and
+     counts on from there — but only for the rest of that JST day; at 00:00
+     the ordinary daily count takes over again. */
+  function shoeNumber(t, key){
+    if(t.resetKey != null && t.resetDay === dayOfShoe(key))
+      return Math.max(1, 1 + (key - t.resetKey));
+    return ordOfShoe(key) + 1;
   }
 
   /* a small, fast, seeded generator: the same table and shoe always deal
@@ -1042,8 +1073,8 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  function seedOf(id, shoeIdx){
-    var s = 'baccara|' + id + '|' + shoeIdx, h = 2166136261 >>> 0;
+  function seedOf(id, shoeKey){
+    var s = 'baccara|' + id + '|' + jstDateOf(dayOfShoe(shoeKey)) + '|' + (ordOfShoe(shoeKey) + 1), h = 2166136261 >>> 0;
     for(var i = 0; i < s.length; i++){
       h ^= s.charCodeAt(i);
       h = Math.imul(h, 16777619) >>> 0;
@@ -1053,10 +1084,10 @@
 
   /* 60 hands out of one seeded 8-deck shoe (cached: it is asked for a lot) */
   var planCache = {}, planCacheKeys = [];
-  function shoePlan(id, shoeIdx){
-    var key = id + ':' + shoeIdx;
+  function shoePlan(id, shoeKey){
+    var key = id + ':' + shoeKey;
     if(planCache[key]) return planCache[key];
-    var deck = makeDeck(), rnd = mulberry32(seedOf(id, shoeIdx)), i, j, tmp;
+    var deck = makeDeck(), rnd = mulberry32(seedOf(id, shoeKey)), i, j, tmp;
     for(i = deck.length - 1; i > 0; i--){
       j = Math.floor(rnd() * (i + 1));
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
@@ -1088,12 +1119,13 @@
   /* what a table looks like at an instant, without touching the screen */
   function worldStateAt(t, w){
     var pos = worldPos(t, w);
-    var plan = shoePlan(t.id, pos.shoeIdx);
+    var plan = shoePlan(t.id, pos.shoeKey);
     var h = plan.hands[pos.handIdx];
     var within = w - pos.startWorld;
     var span = handSpan(h);
     var out = {
-      shoeIdx: pos.shoeIdx, shoeNo: shoeNumber(t, pos.shoeIdx),
+      shoeIdx: pos.shoeKey, shoeNo: shoeNumber(t, pos.shoeKey),
+      shoeOrd: pos.shoeOrd, shoeStart: pos.shoeStart,
       handIdx: pos.handIdx, handNo: pos.handIdx + 1, within: within,
       phase: within < BET_MS ? PHASE.BET : PHASE.DEAL,
       settled: within >= BET_MS + span,
@@ -2246,8 +2278,9 @@
     this.id = idx + 1;
     this.dealer = dealer;
     /* this desk's place on the world clock (the master can move it) */
-    this.shift = LIVE_SEED[idx] || 0;
-    this.shoeBaseIdx = null;
+    this.shoePhase = LIVE_SEED[idx] || 0;   // その日のシューの中での位相
+    this.resetDay = null;                   // マスターのリセット（その日だけ #1 から数える）
+    this.resetKey = null;
     this.hands = null;                  // the 60 hands of the shoe in play
     this.shoeIdx = null;
     this.handIdx = 0;
@@ -2297,11 +2330,11 @@
   };
 
   /* put the shoe the world clock names on the table */
-  Table.prototype.loadWorldShoe = function(shoeIdx){
-    var plan = shoePlan(this.id, shoeIdx);
-    this.shoeIdx = shoeIdx;
+  Table.prototype.loadWorldShoe = function(shoeKey){
+    var plan = shoePlan(this.id, shoeKey);
+    this.shoeIdx = shoeKey;
     this.hands = plan.hands;
-    this.shoeNo = shoeNumber(this, shoeIdx);
+    this.shoeNo = shoeNumber(this, shoeKey);
     this.target = SHOE_HANDS;
     this.results = [];
     this.lastResult = null;
@@ -2321,19 +2354,19 @@
   Table.prototype.syncWorld = function(w, force){
     if(this.pinned) return false;
     var pos = worldPos(this, w);
-    var key = pos.shoeIdx + ':' + pos.handIdx;
+    var key = pos.shoeKey + ':' + pos.handIdx;
     var same = this.worldSynced && key === this.wkey;
     if(!force && same) return false;
     /* a hand you had money on that has already been played out is settled
        from the shoe, not lost (only when the table really moves on) */
     if(this.staked > 0 && !same) this.closeOpenBets();
-    if(pos.shoeIdx !== this.shoeIdx) this.loadWorldShoe(pos.shoeIdx);
+    if(pos.shoeKey !== this.shoeIdx) this.loadWorldShoe(pos.shoeKey);
     this.applyWorld(pos, w);
     return true;
   };
 
   Table.prototype.applyWorld = function(pos, w){
-    var plan = shoePlan(this.id, pos.shoeIdx);
+    var plan = shoePlan(this.id, pos.shoeKey);
     var hand = plan.hands[pos.handIdx];
     var start = w2l(pos.startWorld);          // this hand's window, on the screen clock
     var within = w - pos.startWorld;
@@ -2385,7 +2418,7 @@
       }
     }
     this.worldSynced = true;
-    this.wkey = pos.shoeIdx + ':' + pos.handIdx;
+    this.wkey = pos.shoeKey + ':' + pos.handIdx;
     this.dirty = true;
   };
 
@@ -3356,16 +3389,18 @@
      The shoe is the world clock's, so “reset” moves this desk to the start
      of the next shoe instead of deleting a timetable: the table shuffles a
      fresh 60-hand shoe, the road empties, the number counts from #1 again,
-     and from there it runs on the same shared clock as before. The offset
-     lives on this device only (localStorage), so other phones keep the
-     shoe they have. */
-  var LIVE_OFFSET_KEY = 'bac.live.v1';
+     and from there it runs on the same shared clock as before. The number
+     then follows that day's count until 00:00 JST, when the ordinary daily
+     reset takes over. The offset lives on this device only (localStorage),
+     so other phones keep the shoe they have. */
+  var LIVE_OFFSET_KEY = 'bac.live.v2';
 
   function saveLiveOffsets(){
     try {
       var out = tables.map(function(t){
-        return [t.shift == null ? LIVE_SEED[t.idx] : t.shift,
-                t.shoeBaseIdx == null ? null : t.shoeBaseIdx];
+        return [t.shoePhase == null ? LIVE_SEED[t.idx] : t.shoePhase,
+                t.resetDay == null ? null : t.resetDay,
+                t.resetKey == null ? null : t.resetKey];
       });
       window.localStorage.setItem(LIVE_OFFSET_KEY, JSON.stringify(out));
     } catch(e){}
@@ -3380,8 +3415,10 @@
       for(var i = 0; i < tables.length && i < saved.length; i++){
         var e = saved[i];
         if(e && isFinite(e[0])){
-          tables[i].shift = e[0];
-          tables[i].shoeBaseIdx = (e[1] == null || !isFinite(e[1])) ? null : e[1];
+          /* the phase only ever has to say where in a shoe the desk stands */
+          tables[i].shoePhase = ((e[0] % SHOE_MS) + SHOE_MS) % SHOE_MS;
+          tables[i].resetKey = (e[2] == null || !isFinite(e[2])) ? null : e[2];
+          tables[i].resetDay = (tables[i].resetKey == null || e[1] == null || !isFinite(e[1])) ? null : e[1];
         }
       }
     } catch(e){}
@@ -3400,11 +3437,16 @@
     for(i = 0; i < list.length; i++){
       var t = list[i];
       if(t.staked > 0) t.closeOpenBets();
-      /* stand the desk at the first instant of the next shoe */
-      var local = w + t.shift;
-      var boundary = (Math.floor(local / SHOE_MS) + 1) * SHOE_MS;
-      t.shift = boundary - w;
-      t.shoeBaseIdx = boundary / SHOE_MS;
+      /* stand the desk at the first instant of the next shoe: line this
+         desk's phase up so a shoe boundary falls exactly on now, then count
+         that fresh shoe as #1 for the rest of the JST day */
+      var day = jstDayAt(w);
+      var elapsed = w - jstDayStart(day);
+      var phase = (SHOE_MS - (elapsed % SHOE_MS)) % SHOE_MS;
+      var shoeKey = day * SHOES_PER_DAY + Math.floor((elapsed + phase) / SHOE_MS);
+      t.shoePhase = phase;
+      t.resetDay = day;
+      t.resetKey = shoeKey;
       t.pinned = false;
       t.worldSynced = false;
       t.wkey = '';
@@ -3714,8 +3756,14 @@
     SLOT_BET_MS: SLOT_BET_MS,
     SHOE_MS: SHOE_MS,
     SHOE_HANDS: SHOE_HANDS,
+    SHOES_PER_DAY: SHOES_PER_DAY,
+    JST_MS: JST_MS,
+    DAY_MS: DAY_MS,
+    jstDayAt: jstDayAt,
+    jstDayStart: jstDayStart,
+    jstDateOf: jstDateOf,
     LIVE_EPOCH: LIVE_EPOCH,
-    shoePlan: function(i, shoeIdx){ return shoePlan(tables[i].id, shoeIdx); },
+    shoePlan: function(i, shoeKey){ return shoePlan(tables[i].id, shoeKey); },
     handSpan: handSpan,
     /* deal the hand that is waiting (used where the old button was) */
     dealNow: function(){
