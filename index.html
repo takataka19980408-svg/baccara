@@ -258,7 +258,7 @@
     min-width:22px;text-align:right}
   .score.dim{color:#3d4d5c}
   .cards{display:flex;align-items:center;flex:1 1 auto;gap:var(--cgap,4px);min-width:0;
-    min-height:0;perspective:700px;--cardw:var(--cw,76px)}
+    min-height:0;perspective:700px;--cardw:var(--cw,76px);transition:padding-top .24s ease}
   /* a three-card hand lays the card that ends it on its own line, under the two
      it was drawn with: all three stay inside the panel and big, instead of a
      third of the panel's width each */
@@ -271,7 +271,11 @@
      --cardw is measured by JS (layoutCards) because the card that ends a hand
      is squared sideways, and its footprint is the other way round. */
   .card{position:relative;flex:0 0 auto;
-    width:var(--cardw,76px);height:calc(var(--cardw,76px) * 86 / 62)}
+    width:var(--cardw,76px);height:calc(var(--cardw,76px) * 86 / 62);
+    transition:width .24s ease,height .24s ease}
+  /* three cards narrowing into one row would poke out of the panel while the
+     two already on the felt catch up, so that resize lands at once */
+  .cards.jump .card{transition:none}
   /* the card the hand ends on lies on its side, the way a dealer squares it */
   .card.side{width:calc(var(--cardw,76px) * 86 / 62);height:var(--cardw,76px)}
   .cturn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -322,9 +326,15 @@
   .prev-res{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6c8090;
     background:rgba(6,11,16,.5);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:4px 12px}
   .banner .bx{text-align:center;padding:7px 18px;border-radius:12px;
-    background:rgba(6,11,16,.92);border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg,#0c151d,#070d13);
+    border:1px solid rgba(255,255,255,.14);
     box-shadow:0 10px 28px rgba(0,0,0,.55);animation:pop .2s ease-out both;
     width:max-content;max-width:100%;white-space:nowrap}
+  /* the banner lands over the hand headers, so while it is up the PLAYER /
+     BANKER labels step aside instead of showing through the letters (the
+     cards and the totals stay where they are) */
+  .hand-hd .side{transition:opacity .16s}
+  .stage.show-result .hand-hd .side{opacity:0}
   .banner .t{font-size:18px;font-weight:900;letter-spacing:.1em;line-height:1.1}
   .banner.p .t{color:rgb(var(--p-lt-rgb));text-shadow:0 0 16px rgba(var(--p-rgb),.55)}
   .banner.b .t{color:rgb(var(--b-lt-rgb));text-shadow:0 0 16px rgba(var(--b-rgb),.55)}
@@ -1707,27 +1717,32 @@
       by[s.s + s.i] = s;
       fin[s.s + s.i] = s.at + s.dur;
     }
+    /* the fourth card is the last one both hands are dealt with, so nothing
+       may be squared across before its face is up: until then P and B have
+       to look exactly alike, or the felt answers what the cards have not. */
+    var fourth = fin.b1 || 0;
     /* player: a third card is the last one; otherwise it stands on 6/7 the
-       moment the second card is turned */
+       moment the fourth card has been read */
     if(h.p.length > 2) out.p = { i:2, at:(by.p2 ? by.p2.fly : 0) };
-    else out.p = { i:1, at:(fin.p1 || 0) + 220 };
+    else out.p = { i:1, at:Math.max((fin.p1 || 0) + 220, fourth + 140) };
 
     if(h.b.length > 2){
       out.b = { i:2, at:(by.b2 ? by.b2.fly : 0) };
     } else {
       /* banker stands on two: right after its own card, or after the player's
          third card has been read and the draw table says stand */
-      var at = (fin.b1 || 0) + 220;
+      var at = Math.max((fin.b1 || 0) + 220, fourth + 140);
       if(h.p.length > 2) at = Math.max(at, (fin.p2 || 0) + 260);
       out.b = { i:1, at:at };
     }
     return out;
   }
 
-  /* Card width is measured, not guessed: the hand is laid out for the number
-     of cards it is dealt (not the ones on the felt yet), so the cards never
-     jump size mid-deal, and they are sized to sit inside the panel with room
-     to spare on every side — a card is never cropped. */
+  /* Card width is measured, not guessed, and only from the cards that are
+     really on the felt (plus whether the hand's last card is squared across).
+     Nothing here may look at how many cards the hand will end up with: the
+     felt has to look the same on both sides until the hand is decided, or the
+     player can read the third card before it is turned. */
   var CARD_RATIO = 86 / 62;
   function layoutCards(host){
     if(!host) return;
@@ -1738,20 +1753,20 @@
     var cs = getComputedStyle(host);
     var gap = parseFloat(cs.columnGap) || 4;
     var maxW = parseFloat(cs.getPropertyValue('--cw')) || 76;
-    var need = parseInt(host.getAttribute('data-need'), 10) || n;
-    var fin = Math.max(n, need);          // the hand this row is laid out for
+    var cards = host.children, s = 0, i;
+    for(i = 0; i < n; i++) if(cards[i].classList.contains('side')) s++;
     var room = host.clientHeight;
 
-    /* one line: the upright cards plus the sideways one's wide slot */
-    var units = (fin - 1) + CARD_RATIO;
-    var w1 = Math.min(maxW, (avail - gap * (fin - 1)) / units);
+    /* one line: upright cards are one slot wide, a squared one is laid across */
+    var units = (n - s) + s * CARD_RATIO;
+    var w1 = Math.min(maxW, (avail - gap * (n - 1)) / units);
     if(room > 0) w1 = Math.min(w1, room / CARD_RATIO);
 
     /* the card that ends the hand on its own line: the cards left on top are
-       sized against half the hand (or a third of it) instead of all of it */
+       sized against half the hand instead of the whole of it */
     var rowGap = 6, w2 = 0;
-    if(fin > 2){
-      var top = fin - 1;
+    if(n > 2 && s > 0){
+      var top = n - 1;
       w2 = Math.min(maxW, (avail - gap * (top - 1)) / top);
       if(room > 0) w2 = Math.min(w2, (room - rowGap) / (2 * CARD_RATIO));
     }
@@ -1760,8 +1775,9 @@
     var w = two ? w2 : w1;
     if(w < 12) w = 12;
     host.classList.toggle('two-row', two);
-    /* the top row sits where it will end up, so a card does not hop when the
-       last one is dealt under it */
+    /* a three-card hand that stays in one line shrinks at once (see .jump) */
+    host.classList.toggle('jump', n > 2 && !two);
+    /* a hand that has to use two rows keeps them centred in the panel */
     if(two && room > 0){
       var blockH = 2 * w * CARD_RATIO + rowGap;
       host.style.paddingTop = Math.max(0, (room - blockH) / 2).toFixed(1) + 'px';
@@ -1939,6 +1955,7 @@
     UI.tAvatarImg.src = t.dealer.face;
     UI.tAvatarImg.alt = t.dealer.name;
     UI.banner.classList.add('hidden');
+    if(UI.stage) UI.stage.classList.remove('show-result');
     UI.lobby.classList.remove('active');
     UI.table.classList.add('active');
     window.scrollTo(0, 0);
@@ -1998,7 +2015,7 @@
     [UI.cardsP, UI.cardsB].forEach(function(host){
       host.innerHTML = '';
       host.classList.remove('two-row');
-      host.removeAttribute('data-need');
+      if(host.style.paddingTop) host.style.paddingTop = '';
     });
     UI.scoreP.textContent = '–'; UI.scoreB.textContent = '–';
     UI.scoreP.className = 'score dim'; UI.scoreB.className = 'score dim';
@@ -2018,15 +2035,6 @@
     view.shown = { p:0, b:0 };
     view.faceAt = {};
     view.built = { p:0, b:0 };
-    /* how many cards each side will end up with, so the hand is laid out for
-       its real depth from the first card (no size jump as the third arrives) */
-    ['p','b'].forEach(function(side){
-      var host = hostFor(side);
-      if(!host) return;
-      var len = (t.hand && t.hand[side]) ? t.hand[side].length : 0;
-      if(len) host.setAttribute('data-need', String(len));
-      else host.removeAttribute('data-need');
-    });
     if(t.phase !== PHASE.DEAL || !t.hand){
       [UI.cardsP, UI.cardsB].forEach(function(h){ h.innerHTML = ''; });
       buildBetCards();
@@ -2177,6 +2185,7 @@
     else { cls = 'banner t'; title = 'TIE'; }
     UI.banner.className = cls;
     UI.bannerT.textContent = title;
+    if(UI.stage) UI.stage.classList.add('show-result');
     UI.handP.classList.toggle('win', res.result === 'P');
     UI.handB.classList.toggle('win', res.result === 'B');
     UI.spots.forEach(function(el){
@@ -2217,6 +2226,7 @@
   function hideBanner(){
     UI.banner.classList.add('hidden');
     UI.banner.className = 'banner hidden';
+    if(UI.stage) UI.stage.classList.remove('show-result');
     UI.handP.classList.remove('win');
     UI.handB.classList.remove('win');
     UI.spots.forEach(function(el){ el.classList.remove('win'); });
