@@ -2320,10 +2320,11 @@
     if(this.pinned) return false;
     var pos = worldPos(this, w);
     var key = pos.shoeIdx + ':' + pos.handIdx;
-    if(!force && this.worldSynced && key === this.wkey) return false;
+    var same = this.worldSynced && key === this.wkey;
+    if(!force && same) return false;
     /* a hand you had money on that has already been played out is settled
-       from the shoe, not lost */
-    if(this.staked > 0) this.closeOpenBets();
+       from the shoe, not lost (only when the table really moves on) */
+    if(this.staked > 0 && !same) this.closeOpenBets();
     if(pos.shoeIdx !== this.shoeIdx) this.loadWorldShoe(pos.shoeIdx);
     this.applyWorld(pos, w);
     return true;
