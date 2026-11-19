@@ -3382,7 +3382,10 @@
        you ride one of them. TIE rides along with either. */
     if(spot === 'P' && t.bets.B > 0){ toast('同じ卓でPとBの両張りはできないよ。別の台ならOK'); return; }
     if(spot === 'B' && t.bets.P > 0){ toast('同じ卓でPとBの両張りはできないよ。別の台ならOK'); return; }
-    if(amount > bank.balance){ toast('残高が足りません'); return; }
+    if(bank.balance <= 0){ toast('残高が足りません'); return; }
+    if(amount <= 0) return;
+    /* 選んだチップが残高を超えていたら、残り全部を張る（残高ゼロまで） */
+    if(amount > bank.balance){ amount = bank.balance; }
     bank.balance -= amount;
     t.bets[spot] += amount;
     t.staked += amount;
