@@ -2914,10 +2914,114 @@
 
   function backToLobby(){
     state.currentTable = null;
+    clearSwipe();                 /* a drag that was still on the felt leaves no trace */
     UI.table.classList.remove('active');
     UI.lobby.classList.add('active');
     tables.forEach(function(t){ t.dirty = true; updateLobbyCard(t); });
     window.scrollTo(0, 0);
+  }
+
+  /* =========================================================
+     swipe back to the lobby
+     =========================================================
+     One rightward drag anywhere on the table screen goes back, so the thumb
+     holding the phone never has to reach the ← button in the corner. It runs
+     the same backToLobby() the button runs: the bets, the shoe and the world
+     clock are left exactly as they were.
+     It stays quiet when it should: only with a table open and no sheet over
+     it, only for a mostly-sideways flick (never a tap, never a scroll), and a
+     sideways drag inside a road that can still scroll left stays that road's
+     own scroll. */
+  var SWIPE_DX = 64;         // how far right counts as "go back"
+  var SWIPE_DY = 80;         // ...without leaving the horizontal
+  var SWIPE_RATIO = 1.6;     // sideways has to win by this much
+  var SWIPE_MS = 700;        // a flick, not a slow haul
+  var SWIPE_SLOP = 10;       // movement before the drag picks a direction
+  var SWIPE_FOLLOW = 0.34;   // how far the felt follows the finger
+  var SWIPE_FOLLOW_MAX = 54;
+
+  var swipe = null;          // the drag in progress
+  var swipeTimer = null;
+  var clickGuard = 0;        // a finished drag must not land as a tap too
+
+  function swipeReady(){
+    return !!state.currentTable && !historyIsOpen() && !masterIsOpen();
+  }
+
+  /* the nearest thing around the finger that scrolls sideways (大路・下罫線・珠盤路) */
+  function sidewaysAt(el){
+    for(var n = el; n && n.nodeType === 1; n = n.parentNode){
+      if(n === UI.table) break;
+      if(n.scrollWidth > n.clientWidth + 1){
+        var ox = window.getComputedStyle(n).overflowX;
+        if(ox === 'auto' || ox === 'scroll') return n;
+      }
+    }
+    return null;
+  }
+
+  /* the felt follows the finger a little, and always comes back clean */
+  function followSwipe(px){
+    if(!UI.table) return;
+    clearTimeout(swipeTimer);
+    if(px){
+      UI.table.style.transition = 'none';
+      UI.table.style.transform = 'translateX(' + px.toFixed(1) + 'px)';
+      return;
+    }
+    UI.table.style.transition = 'transform .16s ease-out';
+    UI.table.style.transform = 'translateX(0px)';
+    swipeTimer = setTimeout(clearSwipe, 220);
+  }
+
+  function clearSwipe(){
+    clearTimeout(swipeTimer);
+    if(!UI.table) return;
+    UI.table.style.transition = '';
+    UI.table.style.transform = '';
+  }
+
+  function swipeStart(x, y, t, target){
+    swipe = null;
+    if(!swipeReady()) return;
+    var box = sidewaysAt(target && target.nodeType === 1 ? target : null);
+    swipe = { x0:x, y0:y, x:x, y:y, t0:t, axis:null, id:null, pid:null,
+              /* a road already scrolled away from its left end keeps its own drag */
+              busy: !!(box && box.scrollLeft > 0) };
+  }
+
+  function swipeMove(x, y){
+    if(!swipe) return false;
+    var dx = x - swipe.x0, dy = y - swipe.y0;
+    swipe.x = x; swipe.y = y;
+    if(!swipe.axis){
+      if(Math.abs(dx) < SWIPE_SLOP && Math.abs(dy) < SWIPE_SLOP) return false;
+      swipe.axis = (dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2) ? 'back' : 'other';
+    }
+    if(swipe.axis !== 'back' || swipe.busy) return false;
+    followSwipe(Math.min(dx * SWIPE_FOLLOW, SWIPE_FOLLOW_MAX));
+    return true;
+  }
+
+  function swipeEnd(){
+    var d = swipe;
+    swipe = null;
+    if(!d) return false;
+    var dx = d.x - d.x0, dy = d.y - d.y0, dt = now() - d.t0;
+    var went = d.axis === 'back' && !d.busy && dx >= SWIPE_DX &&
+               Math.abs(dy) <= SWIPE_DY && dx > Math.abs(dy) * SWIPE_RATIO &&
+               dt <= SWIPE_MS;
+    if(d.axis === 'back' && dx > 24) clickGuard = now() + 320;
+    if(!went){ followSwipe(0); return false; }
+    clearSwipe();
+    backToLobby();
+    return true;
+  }
+
+  function swipeCancel(){
+    if(!swipe) return;
+    swipe = null;
+    followSwipe(0);
   }
 
   /* ---------- cards ---------- */
@@ -3536,6 +3640,67 @@
      ========================================================= */
   function wire(){
     $('btn-back').addEventListener('click', backToLobby);
+
+    /* --- swipe back: touch on the phone, pointer on a desk ----------------
+       Both are wired to the same drag; a touch also arrives as pointer
+       events, so the pointer side ignores pointerType 'touch' and the two
+       can never fire the same swipe twice. */
+    document.addEventListener('touchstart', function(e){
+      if(e.touches.length !== 1){ swipeCancel(); return; }
+      var t = e.touches[0];
+      swipeStart(t.clientX, t.clientY, now(), e.target);
+      if(swipe) swipe.id = t.identifier;
+    }, { passive:true });
+
+    document.addEventListener('touchmove', function(e){
+      if(!swipe) return;
+      var t = null;
+      for(var i = 0; i < e.touches.length; i++)
+        if(e.touches[i].identifier === swipe.id) t = e.touches[i];
+      if(!t){ swipeCancel(); return; }
+      if(swipeMove(t.clientX, t.clientY) && e.cancelable) e.preventDefault();
+    }, { passive:false });
+
+    document.addEventListener('touchend', function(e){
+      if(!swipe) return;
+      for(var i = 0; i < e.changedTouches.length; i++){
+        var t = e.changedTouches[i];
+        if(t.identifier !== swipe.id) continue;
+        swipe.x = t.clientX; swipe.y = t.clientY;
+        swipeEnd();
+        return;
+      }
+    }, { passive:true });
+
+    document.addEventListener('touchcancel', swipeCancel);
+
+    document.addEventListener('pointerdown', function(e){
+      if(e.pointerType === 'touch') return;
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
+      swipeStart(e.clientX, e.clientY, now(), e.target);
+      if(swipe) swipe.pid = e.pointerId;
+    });
+
+    document.addEventListener('pointermove', function(e){
+      if(!swipe || e.pointerType === 'touch' || swipe.pid !== e.pointerId) return;
+      if(swipeMove(e.clientX, e.clientY) && e.cancelable) e.preventDefault();
+    });
+
+    document.addEventListener('pointerup', function(e){
+      if(!swipe || swipe.pid !== e.pointerId) return;
+      swipe.x = e.clientX; swipe.y = e.clientY;
+      swipeEnd();
+    });
+
+    document.addEventListener('pointercancel', swipeCancel);
+
+    /* the drag is not also a tap on whatever bet spot it started on */
+    document.addEventListener('click', function(e){
+      if(!clickGuard || now() > clickGuard) return;
+      clickGuard = 0;
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+
     $('btn-repeat').addEventListener('click', repeatBets);
     $('btn-clear').addEventListener('click', clearBets);
     $('btn-topup').addEventListener('click', topUp);
@@ -3720,6 +3885,10 @@
     layoutCards: layoutCards,
     openTable: openTable,
     backToLobby: backToLobby,
+    swipeState: function(){ return swipe ? { axis:swipe.axis, busy:swipe.busy,
+                                             dx:swipe.x - swipe.x0, dy:swipe.y - swipe.y0 } : null; },
+    swipeReady: swipeReady,
+    swipeFollow: function(){ return UI.table ? (UI.table.style.transform || '') : ''; },
     placeBet: placeBet,
     clearBets: clearBets,
     repeatBets: repeatBets,
