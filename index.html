@@ -2302,6 +2302,10 @@
     this.settled = true;
     this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
     this.staked = 0;
+    /* 受付中に張ったチップで、まだ決着していないものがあるか。
+       staked は精算後も演出と履歴のために残すので、
+       「未精算の張りがあるか」はこのフラグだけで判断する */
+    this.openBets = false;
     this.lastBets = null;
     this.lastResult = null;
     this.dirty = true;
@@ -2377,6 +2381,7 @@
     this.results = resultCells(plan.hands, pos.handIdx);
     this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
     this.staked = 0;
+    this.openBets = false;
     this.nextAt = start + SLOT_MS;
     this.pickCrowd();
     this.setShoeUsed(0);
@@ -2441,9 +2446,10 @@
     if(this.seatAt > 0) this.seatAt += d;
   };
 
-  /* 席を立つ前に張ったチップが、時刻の飛びで置き去りにならないように */
+  /* 席を立つ前に張ったチップが、時刻の飛びで置き去りにならないように。
+     決着済みの張りはここでは触らない（2回目の払い戻しをしない） */
   Table.prototype.closeOpenBets = function(){
-    if(!this.staked) return;
+    if(!this.staked || !this.openBets) return;
     var h = this.hand || this.pendingHand ||
             (this.hands ? this.hands[this.handIdx] : null);
     if(h){
@@ -2454,6 +2460,7 @@
     } else {
       bank.balance += this.staked;
       this.staked = 0;
+      this.openBets = false;
       this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
       syncWallet();
     }
@@ -2468,6 +2475,7 @@
     this.settled = true;
     this.bets = { P:0, B:0, T:0, PP:0, BP:0 };
     this.staked = 0;
+    this.openBets = false;
     this.pickCrowd();
     this.dirty = true;
   };
@@ -2533,7 +2541,11 @@
   };
 
   Table.prototype.settle = function(){
+    /* 同じ局を二度精算しない：どの経路（tick・syncWorld・リセット・
+       settleNow）から呼ばれても、払い戻しと履歴は1回だけ */
+    if(this.settled && !this.openBets) return;
     var h = this.hand, b = this.bets;
+    if(!h) return;
     var staked = b.P + b.B + b.T + b.PP + b.BP;
     var ret = 0;
 
@@ -2556,6 +2568,7 @@
     this.staked = staked;
     this.results.push({ r: h.result, p1: h.pPair, p2: h.bPair });
     this.settled = true;
+    this.openBets = false;
     this.dirty = true;
     syncWallet();
     /* money that moved goes into the book — a hand nobody bet on is left out */
@@ -3269,6 +3282,7 @@
     bank.balance -= amount;
     t.bets[spot] += amount;
     t.staked += amount;
+    t.openBets = true;
     syncWallet();
     renderBets(t);
     var el = UI.spots.filter(function(x){ return x.getAttribute('data-spot') === spot; })[0];
@@ -3288,6 +3302,7 @@
     bank.balance += total;
     t.bets = { P:0, B:0, T:0, PP:0, BP:0 };
     t.staked = 0;
+    t.openBets = false;
     syncWallet();
     renderBets(t);
   }
@@ -3308,6 +3323,7 @@
     bank.balance -= total;
     for(i = 0; i < keys.length; i++) t.bets[keys[i]] = lb[keys[i]];
     t.staked = total;
+    t.openBets = true;
     syncWallet();
     renderBets(t);
     toast('前回と同額をセット');
@@ -3459,6 +3475,7 @@
       t.pendingHand = null;
       t.bets = { P:0, B:0, T:0, PP:0, BP:0 };
       t.staked = 0;
+      t.openBets = false;
       t.dirty = true;
       t.syncWorld(w, true);
       if(t.el) updateLobbyCard(t);
